@@ -1,0 +1,21 @@
+{
+  "classes": [
+    "Glioma",
+    "Meningioma", 
+    "No Tumor",
+    "Pituitary"
+  ],
+  "description": "Brain tumor classification labels for MRI scans",
+  "index_mapping": {
+    "0": "Glioma",
+    "1": "Meningioma",
+    "2": "No Tumor",
+    "3": "Pituitary"
+  },
+  "risk_levels": {
+    "Glioma": "High",
+    "Meningioma": "Medium",
+    "No Tumor": "Low",
+    "Pituitary": "High"
+  }
+}
