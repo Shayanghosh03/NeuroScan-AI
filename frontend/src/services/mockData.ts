@@ -6,7 +6,7 @@ export const MOCK_USER: User = {
   email: 'doctor@hospital.com',
   role: 'Neuroradiologist',
   avatar: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&q=80&w=250',
-  hospital: 'Metropolitan Neurological Institute',
+  hospital: '',
   department: 'Diagnostic Imaging & Radiology',
 };
 
@@ -55,7 +55,7 @@ export function generateMockPrediction(fileName: string, fileSize: string): Pred
     patientName: 'Anonymous Patient',
     patientAge: 45,
     patientGender: 'Unspecified',
-    hospitalName: 'Metropolitan Neurological Institute',
+    hospitalName: '',
     doctorNotes: selectedClass === 'No Tumor'
       ? 'Scan shows normal cortical structure without evidence of intracranial mass lesion.'
       : `High probability indication of ${selectedClass}. Recommended urgent neuroradiological consultation and contrast T1/T2 MRI sequence.`,

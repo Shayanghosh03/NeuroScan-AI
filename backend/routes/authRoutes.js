@@ -10,7 +10,8 @@ const {
   googleCallback,
   verifyGoogleToken,
   forgotPassword,
-  resetPassword
+  resetPassword,
+  deleteAccount
 } = require('../controllers/authController');
 const { protect } = require('../middleware/authMiddleware');
 
@@ -22,6 +23,8 @@ router.get('/me', protect, getMe);
 router.get('/profile', protect, getMe);
 router.put('/profile', protect, updateProfile);
 router.post('/logout', protect, logout);
+router.delete('/account', protect, deleteAccount);
+router.delete('/profile', protect, deleteAccount);
 router.get('/google', googleAuth);
 router.get('/google/callback', googleCallback);
 router.post('/google/verify', verifyGoogleToken);

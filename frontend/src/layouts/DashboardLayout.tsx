@@ -25,14 +25,14 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
     <div className="min-h-screen flex bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white transition-colors">
       
       {/* Desktop Fixed Sidebar */}
-      <div className="hidden lg:block w-64 shrink-0 h-screen sticky top-0">
+      <div className="hidden lg:block w-64 shrink-0 h-screen sticky top-0 print:hidden">
         <Sidebar />
       </div>
 
       {/* Mobile Drawer Overlay */}
       <AnimatePresence>
         {mobileSidebarOpen && (
-          <div className="fixed inset-0 z-50 lg:hidden flex">
+          <div className="fixed inset-0 z-50 lg:hidden flex print:hidden">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -57,7 +57,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
       <div className="flex-1 flex flex-col min-w-0">
         
         {/* Top Navbar */}
-        <header className="sticky top-0 z-30 glass-nav px-4 sm:px-8 py-4 flex items-center justify-between border-b border-slate-200/80 dark:border-slate-800">
+        <header className="sticky top-0 z-30 glass-nav px-4 sm:px-8 py-4 flex items-center justify-between border-b border-slate-200/80 dark:border-slate-800 print:hidden">
           
           <div className="flex items-center gap-3">
             <button

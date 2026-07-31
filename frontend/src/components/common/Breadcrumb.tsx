@@ -18,7 +18,7 @@ export const Breadcrumb: React.FC = () => {
   };
 
   return (
-    <nav className="flex items-center text-xs font-medium text-slate-500 dark:text-slate-400 mb-6">
+    <nav className="flex items-center text-xs font-medium text-slate-500 dark:text-slate-400 mb-6 print:hidden">
       <Link to="/" className="hover:text-brand-600 dark:hover:text-brand-400 flex items-center gap-1">
         <Home className="w-3.5 h-3.5" />
         <span>Home</span>

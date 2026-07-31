@@ -80,7 +80,7 @@ export const predictionService = {
         patientName: patientInfo?.name || payload.patientName || 'Anonymous Patient',
         patientAge: patientInfo?.age || payload.patientAge || 45,
         patientGender: patientInfo?.gender || payload.patientGender || 'Unspecified',
-        hospitalName: activeUser?.hospital || payload.hospitalName || 'Metropolitan Neurological Institute',
+        hospitalName: activeUser?.hospital || payload.hospitalName || '',
         doctorName: activeUser?.name || 'Dr. Attending Physician',
         doctorNotes: payload.doctorNotes
       };

@@ -29,7 +29,7 @@ const DEFAULT_REGISTERED_USERS: RegisteredUserRecord[] = [
     name: 'Dr. Sarah Jenkins',
     email: 's.jenkins@neuroscanai.med',
     password: 'password123',
-    hospital: 'Metropolitan Neurological Institute',
+    hospital: '',
     role: 'Neuroradiologist'
   }
 ];
@@ -95,7 +95,7 @@ export const authService = {
         id: matchedUser.id || `usr-${Date.now()}`,
         name: matchedUser.name,
         email: matchedUser.email,
-        hospital: matchedUser.hospital || 'Metropolitan Neurological Institute',
+        hospital: matchedUser.hospital || '',
         role: matchedUser.role || 'Neuroradiologist',
         avatar: MOCK_USER.avatar,
       };
@@ -111,7 +111,7 @@ export const authService = {
       name: data.name,
       email: data.email.toLowerCase().trim(),
       password: data.password || 'password123',
-      hospital: data.hospital,
+      hospital: data.hospital || '',
       role: 'Neuroradiologist'
     });
 
@@ -136,7 +136,7 @@ export const authService = {
         id: `usr-${Date.now()}`,
         name: data.name,
         email: data.email.toLowerCase().trim(),
-        hospital: data.hospital || 'Metropolitan Neurological Institute',
+        hospital: data.hospital || '',
         role: 'Neuroradiologist',
         avatar: MOCK_USER.avatar,
       };
@@ -207,10 +207,43 @@ export const authService = {
     localStorage.removeItem('neuroscan_user');
   },
 
+  async deleteAccount(): Promise<void> {
+    try {
+      const savedUserStr = localStorage.getItem('neuroscan_user');
+      let currentEmail = '';
+      if (savedUserStr) {
+        try {
+          const parsed = JSON.parse(savedUserStr);
+          if (parsed?.email) currentEmail = parsed.email.toLowerCase().trim();
+        } catch (e) {}
+      }
+
+      // 1. Call backend API to delete user permanently from MongoDB database
+      try {
+        await apiClient.delete('/auth/account');
+      } catch (err) {}
+
+      // 2. Remove user from local registered users registry
+      if (currentEmail) {
+        const registered = getRegisteredUsers();
+        const updated = registered.filter(u => u.email.toLowerCase() !== currentEmail);
+        localStorage.setItem('neuroscan_registered_users', JSON.stringify(updated));
+      }
+
+      // 3. Clear session credentials
+      this.logout();
+    } catch (e) {
+      this.logout();
+    }
+  },
+
   async forgotPassword(email: string): Promise<{ success: boolean; message: string; otp?: string; email: string }> {
     const normEmail = email.toLowerCase().trim();
     try {
       const response = await apiClient.post('/auth/forgot-password', { email: normEmail });
+      if (response.data?.otp) {
+        sessionStorage.setItem(`neuroscan_reset_otp_${normEmail}`, response.data.otp);
+      }
       return response.data;
     } catch (error: any) {
       if (error?.response) {

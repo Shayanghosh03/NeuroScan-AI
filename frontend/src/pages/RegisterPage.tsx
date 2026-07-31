@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
-import { Brain, User, Mail, Lock, Building, ArrowRight, ArrowLeft, RefreshCw, ShieldCheck, KeyRound } from 'lucide-react';
+import { Brain, User, Mail, Lock, Building, ArrowRight, ArrowLeft, RefreshCw, ShieldCheck, KeyRound, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import type { RegisterParams } from '../services/authService';
+import { authService, type RegisterParams } from '../services/authService';
 
 interface ExtendedRegisterParams extends RegisterParams {
   confirmPassword?: string;
@@ -15,6 +15,7 @@ export const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
   const [captchaCode, setCaptchaCode] = useState<string>('');
+  const [showPassword, setShowPassword] = useState(false);
 
   const generateCaptcha = () => {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -25,9 +26,18 @@ export const RegisterPage: React.FC = () => {
     setCaptchaCode(code);
   };
 
+  const [searchParams] = useSearchParams();
+
   useEffect(() => {
     generateCaptcha();
-  }, []);
+    const msg = searchParams.get('message');
+    const err = searchParams.get('error');
+    if (msg) {
+      setError(decodeURIComponent(msg));
+    } else if (err) {
+      setError(decodeURIComponent(err));
+    }
+  }, [searchParams]);
 
   const {
     register,
@@ -55,13 +65,16 @@ export const RegisterPage: React.FC = () => {
     }
 
     try {
-      await registerUser({
+      await authService.register({
         name: data.name,
         email: data.email,
         password: data.password,
         hospital: data.hospital
       });
-      navigate('/dashboard');
+      
+      authService.logout();
+
+      navigate('/login?message=' + encodeURIComponent('Registration successful! Please sign in with your email and password to access your workstation.'));
     } catch (err: any) {
       setError(err.message || 'Registration failed. Please check input values.');
       generateCaptcha();
@@ -154,7 +167,7 @@ export const RegisterPage: React.FC = () => {
                 <input
                   type="text"
                   {...register('hospital')}
-                  placeholder="Metropolitan Neurological Institute"
+                  placeholder="Hospital / Medical Institute (Optional)"
                   className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                 />
               </div>
@@ -168,11 +181,19 @@ export const RegisterPage: React.FC = () => {
               <div className="relative">
                 <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
                 <input
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   {...register('password', { required: 'Password is required', minLength: { value: 6, message: 'Minimum 6 characters' } })}
                   placeholder="••••••••"
-                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  className="w-full pl-10 pr-10 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3.5 top-3.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                  title={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
               </div>
               {errors.password && <p className="text-[11px] text-rose-500">{errors.password.message}</p>}
             </div>
@@ -185,14 +206,22 @@ export const RegisterPage: React.FC = () => {
               <div className="relative">
                 <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
                 <input
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   {...register('confirmPassword', {
                     required: 'Please confirm your password',
                     validate: (val) => val === passwordValue || 'Passwords do not match'
                   })}
                   placeholder="••••••••"
-                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  className="w-full pl-10 pr-10 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3.5 top-3.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                  title={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
               </div>
               {errors.confirmPassword && <p className="text-[11px] text-rose-500">{errors.confirmPassword.message}</p>}
             </div>
@@ -263,8 +292,7 @@ export const RegisterPage: React.FC = () => {
             <button
               type="button"
               onClick={() => {
-                const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-                window.location.href = `${baseUrl}/auth/google`;
+                authService.redirectToGoogleAuth();
               }}
               className="w-full py-3 px-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-100/60 dark:bg-slate-900/60 hover:bg-slate-200/60 dark:hover:bg-slate-800/80 text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center justify-center gap-2 transition-colors"
             >

@@ -11,6 +11,7 @@ interface AuthContextType {
   login: (params: LoginParams) => Promise<void>;
   register: (params: RegisterParams) => Promise<void>;
   logout: () => void;
+  deleteAccount: () => Promise<void>;
   updateProfile: (data: Partial<User>) => Promise<void>;
 }
 
@@ -23,14 +24,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     const initAuth = async () => {
-      if (token) {
+      const currentToken = localStorage.getItem('neuroscan_token') || token;
+      if (currentToken) {
+        setToken(currentToken);
         try {
           const profile = await authService.getProfile();
           setUser(profile);
         } catch {
-          setUser(null);
-          setToken(null);
+          const savedUser = localStorage.getItem('neuroscan_user');
+          if (savedUser) {
+            try {
+              setUser(JSON.parse(savedUser));
+            } catch {
+              setUser(null);
+              setToken(null);
+            }
+          } else {
+            setUser(null);
+            setToken(null);
+          }
         }
+      } else {
+        setUser(null);
+        setToken(null);
       }
       setIsLoading(false);
     };
@@ -65,6 +81,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setToken(null);
   };
 
+  const deleteAccount = async () => {
+    setIsLoading(true);
+    try {
+      await authService.deleteAccount();
+      setUser(null);
+      setToken(null);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const updateProfile = async (data: Partial<User>) => {
     const updated = await authService.updateProfile(data);
     setUser(updated);
@@ -80,6 +107,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         login,
         register,
         logout,
+        deleteAccount,
         updateProfile,
       }}
     >

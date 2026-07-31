@@ -11,7 +11,7 @@ export const ContactPage: React.FC = () => {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    subject: 'Clinical Deployment Inquiry',
+    subject: '',
     message: '',
   });
 
@@ -74,7 +74,7 @@ export const ContactPage: React.FC = () => {
     <MainLayout>
       <div className="py-16 sm:py-24 bg-slate-50 dark:bg-slate-950 transition-colors">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-16">
-          
+
           {/* Header */}
           <div className="text-center max-w-3xl mx-auto space-y-4">
             <h1 className="text-4xl sm:text-5xl font-black text-slate-900 dark:text-white tracking-tight">
@@ -86,13 +86,13 @@ export const ContactPage: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-            
+
             {/* Left Contact Info & Location */}
             <div className="lg:col-span-5 space-y-6">
-              
+
               <div className="glass-card rounded-3xl p-8 border border-slate-200/80 dark:border-slate-800 space-y-6">
                 <h3 className="text-xl font-bold text-slate-900 dark:text-white">Direct Channels</h3>
-                
+
                 <div className="space-y-4 text-xs sm:text-sm">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl blue-gradient-btn flex items-center justify-center text-white shrink-0">
@@ -100,7 +100,7 @@ export const ContactPage: React.FC = () => {
                     </div>
                     <div>
                       <span className="text-slate-400 font-medium block text-xs">Clinical Support Email</span>
-                      <span className="font-semibold text-slate-900 dark:text-white">support@neuroscanai.med</span>
+                      <span className="font-semibold text-slate-900 dark:text-white">neuroscanai.official@gmail.com</span>
                     </div>
                   </div>
 
@@ -120,7 +120,7 @@ export const ContactPage: React.FC = () => {
                     </div>
                     <div>
                       <span className="text-slate-400 font-medium block text-xs">Headquarters</span>
-                      <span className="font-semibold text-slate-900 dark:text-white">Medical Innovation Hub, Boston, MA</span>
+                      <span className="font-semibold text-slate-900 dark:text-white">AIEM Campus</span>
                     </div>
                   </div>
                 </div>
@@ -130,8 +130,8 @@ export const ContactPage: React.FC = () => {
               <div className="glass-card rounded-3xl p-6 border border-slate-200/80 dark:border-slate-800 relative overflow-hidden h-48 flex items-center justify-center text-center">
                 <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-xs flex flex-col items-center justify-center p-4">
                   <MapPin className="w-8 h-8 text-brand-400 animate-bounce mb-2" />
-                  <p className="text-xs font-bold text-white">Boston Medical Center Campus</p>
-                  <p className="text-[10px] text-slate-300">Diagnostic Imaging Wing B</p>
+                  <p className="text-xs font-bold text-white">AIEM Campus</p>
+                  <p className="text-[10px] text-slate-300">Mogra, Natungram, Hooghly, West Bengal - 712148</p>
                 </div>
               </div>
 
@@ -170,7 +170,7 @@ export const ContactPage: React.FC = () => {
                         type="text"
                         value={formData.name}
                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        placeholder="Dr. Jane Doe"
+                        placeholder="Jane Doe"
                         className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-brand-500"
                       />
                     </div>
@@ -181,7 +181,7 @@ export const ContactPage: React.FC = () => {
                         type="email"
                         value={formData.email}
                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                        placeholder="doctor@hospital.org"
+                        placeholder="user@gmail.com"
                         className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-brand-500"
                       />
                     </div>
@@ -193,6 +193,7 @@ export const ContactPage: React.FC = () => {
                       type="text"
                       value={formData.subject}
                       onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
+                      placeholder="write your subject here"
                       className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-brand-500"
                     />
                   </div>

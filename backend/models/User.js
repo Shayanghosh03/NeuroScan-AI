@@ -38,7 +38,7 @@ const userSchema = new mongoose.Schema({
   },
   hospital: {
     type: String,
-    default: 'Not specified'
+    default: ''
   },
   department: {
     type: String,
@@ -52,6 +52,14 @@ const userSchema = new mongoose.Schema({
   isActive: {
     type: Boolean,
     default: true
+  },
+  resetPasswordOtp: {
+    type: String,
+    select: false
+  },
+  resetPasswordExpire: {
+    type: Date,
+    select: false
   }
 }, {
   timestamps: true

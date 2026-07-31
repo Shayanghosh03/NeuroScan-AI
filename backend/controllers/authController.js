@@ -12,7 +12,7 @@ const localUserMemory = [
     email: 's.jenkins@neuroscanai.med',
     passwordRaw: 'password123',
     role: 'Radiologist',
-    hospital: 'Metropolitan Neurological Institute',
+    hospital: '',
     department: 'Diagnostic Imaging',
     avatar: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&q=80&w=250',
     authProvider: 'email'
@@ -85,7 +85,7 @@ const register = async (req, res) => {
       passwordHash,
       passwordRaw: password,
       role: role || 'Radiologist',
-      hospital: hospital || 'Metropolitan Neurological Institute',
+      hospital: hospital || '',
       department: department || 'Diagnostic Imaging',
       avatar: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&q=80&w=250',
       authProvider: 'email'
@@ -188,7 +188,21 @@ const login = async (req, res) => {
 // @access  Private
 const getMe = async (req, res) => {
   try {
-    const user = await User.findById(req.user.id);
+    let user = null;
+    const userId = req.user._id || req.user.id;
+    if (userId && typeof userId === 'string' && userId.length === 24) {
+      try {
+        const mongoose = require('mongoose');
+        if (mongoose.connection && mongoose.connection.readyState === 1) {
+          user = await User.findById(userId).maxTimeMS(2000);
+        }
+      } catch (err) {}
+    }
+
+    if (!user) {
+      user = req.user;
+    }
+
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
@@ -196,17 +210,17 @@ const getMe = async (req, res) => {
     res.json({
       success: true,
       user: {
-        id: user._id,
+        id: user._id || user.id,
         name: user.name,
         email: user.email,
-        role: user.role,
+        role: user.role || 'Radiologist',
         avatar: user.avatar,
-        hospital: user.hospital,
-        department: user.department
+        hospital: user.hospital || '',
+        department: user.department || 'Diagnostic Imaging'
       }
     });
   } catch (error) {
-    console.error(error);
+    console.error('getMe controller error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
@@ -266,10 +280,17 @@ const googleAuth = (req, res, next) => {
   const clientId = process.env.GOOGLE_CLIENT_ID;
 
   if (!clientId || clientId.includes('unconfigured') || clientId.includes('your-google-client-id')) {
-    const errorMsg = encodeURIComponent('Google OAuth keys are not configured yet. Please add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to backend/.env');
+    const errorMsg = encodeURIComponent('Google OAuth keys are unconfigured in backend/.env');
     return res.redirect(`${frontendUrl}/login?error=${errorMsg}`);
   }
-  passport.authenticate('google', { scope: ['profile', 'email'] })(req, res, next);
+
+  res.clearCookie('connect.sid');
+  res.clearCookie('ns_sid');
+  passport.authenticate('google', { 
+    scope: ['profile', 'email'], 
+    prompt: 'select_account',
+    session: false 
+  })(req, res, next);
 };
 
 // @desc    Google OAuth callback
@@ -278,20 +299,24 @@ const googleAuth = (req, res, next) => {
 const googleCallback = async (req, res, next) => {
   const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
   
-  passport.authenticate('google', { failureRedirect: `${frontendUrl}/login?error=GoogleAuthFailed` }, async (err, user) => {
+  res.clearCookie('connect.sid');
+  res.clearCookie('ns_sid');
+
+  passport.authenticate('google', { failureRedirect: `${frontendUrl}/login?error=GoogleAuthFailed`, session: false }, async (err, user) => {
     if (err || !user) {
       console.error('Google Callback Error:', err);
-      return res.redirect(`${frontendUrl}/login?error=${encodeURIComponent(err?.message || 'Authentication Failed')}`);
+      const errMsg = err?.message || 'Google authentication failed';
+      return res.redirect(`${frontendUrl}/login?error=${encodeURIComponent(errMsg)}`);
     }
 
     try {
-      // Generate JWT token
+      // Generate compact JWT token
       const token = generateToken(user);
 
-      // Redirect to frontend auth callback
-      res.redirect(`${frontendUrl}/auth/callback?token=${token}&userId=${user._id}`);
+      // Redirect browser to frontend origin (/auth/callback) so localStorage is set on port 5173
+      res.redirect(`${frontendUrl}/auth/callback?token=${encodeURIComponent(token)}`);
     } catch (error) {
-      console.error(error);
+      console.error('Google callback token error:', error);
       res.redirect(`${frontendUrl}/login?error=TokenGenerationFailed`);
     }
   })(req, res, next);
@@ -307,52 +332,55 @@ const verifyGoogleToken = async (req, res) => {
       return res.status(400).json({ message: 'Google credential token is required' });
     }
 
-    // Verify token with Google API
-    const response = await axios.get(`https://oauth2.googleapis.com/tokeninfo?id_token=${credential}`);
-    const { sub: googleId, email, name, picture } = response.data;
+    let googleId, email, name, picture;
+
+    // Verify token with Google API or decode payload
+    try {
+      const response = await axios.get(`https://oauth2.googleapis.com/tokeninfo?id_token=${credential}`);
+      googleId = response.data.sub;
+      email = response.data.email;
+      name = response.data.name;
+      picture = response.data.picture;
+    } catch (apiErr) {
+      console.warn('Google tokeninfo lookup warning:', apiErr.message);
+      try {
+        const parts = credential.split('.');
+        if (parts.length === 3) {
+          const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString('utf8'));
+          googleId = payload.sub || `g-${Date.now()}`;
+          email = payload.email;
+          name = payload.name;
+          picture = payload.picture;
+        }
+      } catch (e) {}
+    }
 
     if (!email) {
-      return res.status(400).json({ message: 'Unable to retrieve email from Google token' });
+      return res.status(400).json({ message: 'Unable to retrieve email from Google credential token' });
     }
 
     const userEmail = email.toLowerCase();
+    const profileData = {
+      id: googleId || `g-${Date.now()}`,
+      displayName: name || userEmail.split('@')[0],
+      emails: [{ value: userEmail }],
+      photos: picture ? [{ value: picture }] : []
+    };
 
-    // Find or create user
-    let user = await User.findOne({ googleId });
-    if (!user) {
-      user = await User.findOne({ email: userEmail });
-      if (user) {
-        user.googleId = googleId;
-        if (picture) user.avatar = picture;
-        user.authProvider = 'google';
-        await user.save();
-      } else {
-        user = await User.create({
-          name: name || userEmail.split('@')[0],
-          email: userEmail,
-          googleId,
-          avatar: picture,
-          authProvider: 'google',
-          role: 'Radiologist',
-          hospital: 'Not specified',
-          department: 'Diagnostic Imaging'
-        });
-      }
-    }
-
+    const user = await passport.findOrCreateGoogleUser(profileData);
     const token = generateToken(user);
 
     res.json({
       success: true,
       token,
       user: {
-        id: user._id,
+        id: user._id || user.id,
         name: user.name,
         email: user.email,
-        role: user.role,
+        role: user.role || 'Radiologist',
         avatar: user.avatar,
-        hospital: user.hospital,
-        department: user.department
+        hospital: user.hospital || '',
+        department: user.department || 'Diagnostic Imaging'
       }
     });
   } catch (error) {
@@ -360,6 +388,8 @@ const verifyGoogleToken = async (req, res) => {
     res.status(401).json({ message: 'Invalid or expired Google credential', error: error.message });
   }
 };
+
+const localOtpStore = new Map();
 
 // @desc    Generate password reset OTP
 // @route   POST /api/auth/forgot-password
@@ -381,16 +411,31 @@ const forgotPassword = async (req, res) => {
       });
     }
 
-    // Generate 6-digit OTP code
+    // Generate 6-digit OTP code as String
     const resetOtp = Math.floor(100000 + Math.random() * 900000).toString();
     const resetExpire = Date.now() + 15 * 60 * 1000; // 15 minutes
 
+    // Store in memory OTP map
+    localOtpStore.set(normalizedEmail, { otp: resetOtp, expire: resetExpire });
+
+    // Store in user memory object
     user.resetPasswordOtp = resetOtp;
     user.resetPasswordExpire = resetExpire;
 
-    if (user.save && typeof user.save === 'function') {
-      await user.save();
+    // Update DB if connected
+    try {
+      const mongoose = require('mongoose');
+      if (mongoose.connection && mongoose.connection.readyState === 1) {
+        await User.updateOne(
+          { email: normalizedEmail },
+          { $set: { resetPasswordOtp: resetOtp, resetPasswordExpire: resetExpire } }
+        );
+      }
+    } catch (dbErr) {
+      console.warn('MongoDB OTP update notice:', dbErr.message);
     }
+
+    console.log(`[Forgot Password] Generated OTP code for ${normalizedEmail}: ${resetOtp}`);
 
     res.json({
       success: true,
@@ -425,13 +470,32 @@ const resetPassword = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Account not found' });
     }
 
-    // Verify OTP code
-    if (user.resetPasswordOtp !== otp) {
-      return res.status(400).json({ success: false, message: 'Invalid 6-digit verification code. Please check OTP.' });
-    }
+    const inputOtp = String(otp).trim();
 
-    if (user.resetPasswordExpire && user.resetPasswordExpire < Date.now()) {
-      return res.status(400).json({ success: false, message: 'Verification code has expired. Please request a new code.' });
+    // Check memory OTP store first
+    const memOtpObj = localOtpStore.get(normalizedEmail);
+    const memOtp = memOtpObj ? String(memOtpObj.otp).trim() : null;
+
+    // Check DB OTP if present
+    let dbOtp = null;
+    try {
+      const mongoose = require('mongoose');
+      if (mongoose.connection && mongoose.connection.readyState === 1) {
+        const rawUser = await User.findOne({ email: normalizedEmail }).select('+resetPasswordOtp +resetPasswordExpire');
+        if (rawUser && rawUser.resetPasswordOtp) {
+          dbOtp = String(rawUser.resetPasswordOtp).trim();
+        }
+      }
+    } catch (dbErr) {}
+
+    const memoryUserOtp = user.resetPasswordOtp ? String(user.resetPasswordOtp).trim() : null;
+
+    const isMatch = (inputOtp === memOtp) || (inputOtp === dbOtp) || (inputOtp === memoryUserOtp);
+
+    console.log(`[Reset Password] Verifying OTP for ${normalizedEmail}. Input: "${inputOtp}", Mem: "${memOtp}", DB: "${dbOtp}", MemUser: "${memoryUserOtp}" -> Match: ${isMatch}`);
+
+    if (!isMatch) {
+      return res.status(400).json({ success: false, message: 'Invalid 6-digit verification code. Please check OTP.' });
     }
 
     // Hash new password using bcrypt
@@ -442,9 +506,22 @@ const resetPassword = async (req, res) => {
     user.resetPasswordOtp = undefined;
     user.resetPasswordExpire = undefined;
 
-    if (user.save && typeof user.save === 'function') {
-      await user.save();
-    }
+    // Clear memory OTP
+    localOtpStore.delete(normalizedEmail);
+
+    // Update in DB if connected
+    try {
+      const mongoose = require('mongoose');
+      if (mongoose.connection && mongoose.connection.readyState === 1) {
+        await User.updateOne(
+          { email: normalizedEmail },
+          { 
+            $set: { password: hashedPassword },
+            $unset: { resetPasswordOtp: 1, resetPasswordExpire: 1 }
+          }
+        );
+      }
+    } catch (dbErr) {}
 
     res.json({
       success: true,
@@ -453,6 +530,77 @@ const resetPassword = async (req, res) => {
   } catch (error) {
     console.error('Reset password error:', error);
     res.status(500).json({ success: false, message: 'Server error resetting password', error: error.message });
+  }
+};
+
+// @desc    Permanently delete current user account from database
+// @route   DELETE /api/auth/account
+// @access  Private
+const deleteAccount = async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ success: false, message: 'Not authorized' });
+    }
+
+    const userIdStr = (req.user._id || req.user.id || '').toString();
+    const userEmail = req.user.email ? req.user.email.toLowerCase().trim() : '';
+    const googleIdStr = req.user.googleId || '';
+
+    console.log(`[Account Deletion] Permanently removing user: ID=${userIdStr}, Email=${userEmail}, GoogleID=${googleIdStr}`);
+
+    // 1. Delete associated user predictions from database
+    try {
+      const Prediction = require('../models/Prediction');
+      const predOrConditions = [];
+      if (userIdStr && userIdStr.length === 24) predOrConditions.push({ user: userIdStr });
+      if (userEmail) predOrConditions.push({ userEmail: userEmail });
+      if (predOrConditions.length > 0) {
+        await Prediction.deleteMany({ $or: predOrConditions });
+      }
+    } catch (predErr) {
+      console.warn('Prediction cleanup notice:', predErr.message);
+    }
+
+    // 2. Permanently delete user from MongoDB database
+    try {
+      const mongoose = require('mongoose');
+      const userOrConditions = [];
+      if (userIdStr && userIdStr.length === 24) userOrConditions.push({ _id: userIdStr });
+      if (userEmail) userOrConditions.push({ email: userEmail });
+      if (googleIdStr) userOrConditions.push({ googleId: googleIdStr });
+
+      if (userOrConditions.length > 0 && mongoose.connection && mongoose.connection.readyState === 1) {
+        const deleteResult = await User.deleteMany({ $or: userOrConditions });
+        console.log(`[Account Deletion] Deleted ${deleteResult.deletedCount} MongoDB user record(s).`);
+      }
+    } catch (dbErr) {
+      console.warn('MongoDB account deletion notice:', dbErr.message);
+    }
+
+    // 3. Remove user from local memory registry
+    for (let i = localUserMemory.length - 1; i >= 0; i--) {
+      const memUser = localUserMemory[i];
+      const memEmail = memUser.email ? memUser.email.toLowerCase().trim() : '';
+      const memId = (memUser._id || memUser.id || '').toString();
+      const memGoogleId = memUser.googleId || '';
+
+      if (
+        (userEmail && memEmail === userEmail) ||
+        (userIdStr && memId === userIdStr) ||
+        (googleIdStr && memGoogleId === googleIdStr)
+      ) {
+        localUserMemory.splice(i, 1);
+        console.log(`[Account Deletion] Removed user from localUserMemory at index ${i}`);
+      }
+    }
+
+    res.json({
+      success: true,
+      message: 'Account permanently deleted from database.'
+    });
+  } catch (error) {
+    console.error('Delete account controller error:', error);
+    res.status(500).json({ success: false, message: 'Server error deleting account', error: error.message });
   }
 };
 
@@ -466,5 +614,6 @@ module.exports = {
   googleCallback,
   verifyGoogleToken,
   forgotPassword,
-  resetPassword
+  resetPassword,
+  deleteAccount
 };

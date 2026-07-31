@@ -4,8 +4,8 @@
   "description": "NeuroScanAI Backend - Express API with MongoDB",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js",
+    "start": "node --max-http-header-size=65536 server.js",
+    "dev": "nodemon --max-http-header-size=65536 server.js",
     "test": "jest"
   },
   "keywords": ["neuroscan", "medical", "ai", "brain-tumor"],

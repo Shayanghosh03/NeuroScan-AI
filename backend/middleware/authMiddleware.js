@@ -32,7 +32,7 @@ const protect = async (req, res, next) => {
           name: decoded.name || 'Radiologist',
           email: decoded.email,
           role: decoded.role || 'Radiologist',
-          hospital: decoded.hospital || 'Metropolitan Neurological Institute',
+          hospital: decoded.hospital || '',
           department: decoded.department || 'Diagnostic Imaging',
           avatar: decoded.avatar
         };

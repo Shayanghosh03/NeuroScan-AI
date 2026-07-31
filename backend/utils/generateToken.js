@@ -6,10 +6,7 @@ const generateToken = (user) => {
     id: userId,
     email: user.email,
     name: user.name,
-    role: user.role || 'Radiologist',
-    hospital: user.hospital || 'Metropolitan Neurological Institute',
-    department: user.department || 'Diagnostic Imaging',
-    avatar: user.avatar
+    role: user.role || 'Radiologist'
   };
 
   const secret = process.env.JWT_SECRET || 'neuroscan-jwt-secret-2026';

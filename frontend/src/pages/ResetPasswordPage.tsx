@@ -129,8 +129,10 @@ export const ResetPasswordPage: React.FC = () => {
                   <ShieldCheck className="w-4 h-4 text-brand-500 absolute left-3.5 top-3.5" />
                   <input
                     type="text"
+                    name="reset_otp_code"
                     maxLength={6}
                     required
+                    autoComplete="one-time-code"
                     value={otp}
                     onChange={(e) => setOtp(e.target.value)}
                     placeholder="123456"
@@ -148,7 +150,9 @@ export const ResetPasswordPage: React.FC = () => {
                   <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
                   <input
                     type={showPassword ? 'text' : 'password'}
+                    name="new_user_password"
                     required
+                    autoComplete="new-password"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     placeholder="••••••••"
@@ -173,7 +177,9 @@ export const ResetPasswordPage: React.FC = () => {
                   <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
                   <input
                     type={showPassword ? 'text' : 'password'}
+                    name="confirm_user_password"
                     required
+                    autoComplete="new-password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="••••••••"

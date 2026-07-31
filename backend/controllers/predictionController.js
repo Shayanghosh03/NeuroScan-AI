@@ -45,7 +45,7 @@ const predict = async (req, res) => {
         imageSize: `${(req.file.size / (1024 * 1024)).toFixed(2)} MB`,
         riskLevel: 'High',
         doctorNotes: 'Significant neural feature activation indicating Glioma. Recommend contrast T1/T2 MRI sequence.',
-        hospitalName: 'Metropolitan Neurological Institute'
+        hospitalName: req.user?.hospital || ''
       };
     }
 

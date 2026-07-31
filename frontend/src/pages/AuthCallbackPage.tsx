@@ -17,14 +17,14 @@ export const AuthCallbackPage: React.FC = () => {
       if (error) {
         setStatus('error');
         setErrorMessage(decodeURIComponent(error));
-        setTimeout(() => navigate('/login?error=' + encodeURIComponent(error)), 3000);
+        setTimeout(() => navigate('/login?error=' + encodeURIComponent(error)), 3500);
         return;
       }
 
       if (!token) {
         setStatus('error');
         setErrorMessage('No authentication token received from provider.');
-        setTimeout(() => navigate('/login'), 3000);
+        setTimeout(() => navigate('/login'), 3500);
         return;
       }
 
@@ -38,6 +38,13 @@ export const AuthCallbackPage: React.FC = () => {
           localStorage.setItem('neuroscan_user', JSON.stringify(user));
         }
 
+        // If authenticated via popup window, notify parent window and close popup
+        if (window.opener && !window.opener.closed) {
+          window.opener.postMessage({ type: 'GOOGLE_AUTH_SUCCESS', token, user }, window.location.origin);
+          window.close();
+          return;
+        }
+
         setStatus('success');
         
         // Short pause to render success animation then transition to workstation dashboard
@@ -45,10 +52,18 @@ export const AuthCallbackPage: React.FC = () => {
           window.location.href = '/dashboard';
         }, 800);
       } catch (err: any) {
-        console.error('Failed to resolve authenticated session:', err);
-        setStatus('error');
-        setErrorMessage('Failed to verify session profile.');
-        setTimeout(() => navigate('/login'), 3000);
+        console.warn('Backend profile resolution notice on Google callback:', err);
+        const cachedUser = localStorage.getItem('neuroscan_user');
+        if (cachedUser) {
+          setStatus('success');
+          setTimeout(() => {
+            window.location.href = '/dashboard';
+          }, 800);
+        } else {
+          setStatus('error');
+          setErrorMessage('Failed to verify session profile.');
+          setTimeout(() => navigate('/login'), 3500);
+        }
       }
     };
 

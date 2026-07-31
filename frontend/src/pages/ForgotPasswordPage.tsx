@@ -34,7 +34,17 @@ export const ForgotPasswordPage: React.FC = () => {
     setIsLoading(true);
     try {
       const res = await authService.forgotPassword(email);
+      
+      if (!res || !res.success || !res.otp) {
+        setIsLoading(false);
+        setError(res?.message || 'No account found with this email address. Please register your account first.');
+        return;
+      }
+
       setIsLoading(false);
+      setOtp('');
+      setNewPassword('');
+      setConfirmPassword('');
       setStep(2);
 
       if (res.otp) {
@@ -68,7 +78,7 @@ export const ForgotPasswordPage: React.FC = () => {
       setSuccessMsg(`Verification OTP code sent to ${res.email}. Please check your email inbox.`);
     } catch (err: any) {
       setIsLoading(false);
-      setError(err.message || 'Failed to generate reset code.');
+      setError(err.message || 'No account found with this email address. Please register first.');
     }
   };
 
@@ -173,7 +183,7 @@ export const ForgotPasswordPage: React.FC = () => {
 
           {/* STEP 1: Enter Email */}
           {step === 1 && (
-            <form onSubmit={handleRequestOtp} className="space-y-4">
+            <form onSubmit={handleRequestOtp} autoComplete="off" className="space-y-4">
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                   Registered Email Address
@@ -183,6 +193,7 @@ export const ForgotPasswordPage: React.FC = () => {
                   <input
                     type="email"
                     required
+                    autoComplete="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="doctor@hospital.org"
@@ -207,7 +218,7 @@ export const ForgotPasswordPage: React.FC = () => {
 
           {/* STEP 2: Enter OTP & Reset Password */}
           {step === 2 && (
-            <form onSubmit={handleResetPassword} className="space-y-4">
+            <form onSubmit={handleResetPassword} autoComplete="off" className="space-y-4">
               
               {/* 6-Digit OTP Code */}
               <div className="space-y-1">
@@ -218,8 +229,10 @@ export const ForgotPasswordPage: React.FC = () => {
                   <ShieldCheck className="w-4 h-4 text-brand-500 absolute left-3.5 top-3.5" />
                   <input
                     type="text"
+                    name="reset_otp_code"
                     maxLength={6}
                     required
+                    autoComplete="one-time-code"
                     value={otp}
                     onChange={(e) => setOtp(e.target.value)}
                     placeholder="123456"
@@ -237,7 +250,9 @@ export const ForgotPasswordPage: React.FC = () => {
                   <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
                   <input
                     type={showPassword ? 'text' : 'password'}
+                    name="new_user_password"
                     required
+                    autoComplete="new-password"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     placeholder="New password (min 6 characters)"
@@ -265,7 +280,9 @@ export const ForgotPasswordPage: React.FC = () => {
                   <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
                   <input
                     type={showPassword ? 'text' : 'password'}
+                    name="confirm_user_password"
                     required
+                    autoComplete="new-password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="Confirm new password"

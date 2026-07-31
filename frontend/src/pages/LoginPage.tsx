@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
-import { Brain, Lock, Mail, ArrowRight, ArrowLeft } from 'lucide-react';
+import { Brain, Lock, Mail, ArrowRight, ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { authService, type LoginParams } from '../services/authService';
 
@@ -10,11 +10,17 @@ export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     const urlError = searchParams.get('error');
+    const urlMsg = searchParams.get('message');
     if (urlError) {
       setError(decodeURIComponent(urlError));
+    }
+    if (urlMsg) {
+      setSuccessMessage(decodeURIComponent(urlMsg));
     }
   }, [searchParams]);
 
@@ -31,6 +37,7 @@ export const LoginPage: React.FC = () => {
 
   const onSubmit = async (data: LoginParams) => {
     setError(null);
+    setSuccessMessage(null);
     try {
       await login(data);
       navigate('/dashboard');
@@ -77,6 +84,12 @@ export const LoginPage: React.FC = () => {
         {/* Form Container */}
         <div className="glass-card rounded-3xl p-8 border border-slate-200/80 dark:border-slate-800 shadow-2xl space-y-6">
           
+          {successMessage && (
+            <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-medium">
+              {successMessage}
+            </div>
+          )}
+
           {error && (
             <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-xs font-medium">
               {error}
@@ -115,11 +128,19 @@ export const LoginPage: React.FC = () => {
               <div className="relative">
                 <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
                 <input
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   {...register('password', { required: 'Password is required' })}
                   placeholder="••••••••"
-                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  className="w-full pl-10 pr-10 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3.5 top-3.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                  title={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
               </div>
               {errors.password && <p className="text-[11px] text-rose-500">{errors.password.message}</p>}
             </div>
@@ -148,7 +169,7 @@ export const LoginPage: React.FC = () => {
             </button>
           </form>
 
-          {/* Google Auth */}
+          {/* Google Auth Option */}
           <div className="pt-4 border-t border-slate-200/80 dark:border-slate-800 space-y-3">
             <button
               type="button"

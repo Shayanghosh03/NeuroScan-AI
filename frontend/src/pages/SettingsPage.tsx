@@ -14,7 +14,7 @@ const PRESET_AVATARS = [
 ];
 
 export const SettingsPage: React.FC = () => {
-  const { user, updateProfile, logout } = useAuth();
+  const { user, updateProfile, logout, deleteAccount } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -23,34 +23,25 @@ export const SettingsPage: React.FC = () => {
   const [name, setName] = useState(user?.name || '');
   const [hospital, setHospital] = useState(user?.hospital || '');
   const [avatar, setAvatar] = useState(user?.avatar || PRESET_AVATARS[0].url);
+  const [department, setDepartment] = useState(user?.department || 'Diagnostic Imaging');
+  const [role, setRole] = useState(user?.role || 'Neuroradiologist');
   const [language, setLanguage] = useState('English');
   const [savedMsg, setSavedMsg] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    await updateProfile({ name, hospital, avatar });
+    await updateProfile({ name, hospital, avatar, department, role });
     setSavedMsg(true);
     setTimeout(() => setSavedMsg(false), 3000);
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        alert('File size exceeds 5MB limit. Please choose a smaller image.');
-        return;
-      }
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        const resultUrl = reader.result as string;
-        setAvatar(resultUrl);
-        await updateProfile({ avatar: resultUrl });
-        setSavedMsg(true);
-        setTimeout(() => setSavedMsg(false), 3000);
-      };
-      reader.readAsDataURL(file);
-    }
+  const handleAvatarSelect = async (url: string) => {
+    setAvatar(url);
+    await updateProfile({ avatar: url });
+    setSavedMsg(true);
+    setTimeout(() => setSavedMsg(false), 3000);
   };
 
   const handleSelectPreset = async (presetUrl: string) => {
@@ -60,7 +51,26 @@ export const SettingsPage: React.FC = () => {
     setTimeout(() => setSavedMsg(false), 3000);
   };
 
-  const handleRemoveAvatar = async () => {
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const base64 = reader.result as string;
+        setAvatar(base64);
+        await updateProfile({ avatar: base64 });
+        setSavedMsg(true);
+        setTimeout(() => setSavedMsg(false), 3000);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    handleFileUpload(e);
+  };
+
+  const handleResetAvatar = async () => {
     const fallbackUrl = PRESET_AVATARS[0].url;
     setAvatar(fallbackUrl);
     await updateProfile({ avatar: fallbackUrl });
@@ -68,16 +78,27 @@ export const SettingsPage: React.FC = () => {
     setTimeout(() => setSavedMsg(false), 3000);
   };
 
-  const handleConfirmDeleteAccount = () => {
-    setDeleteModalOpen(false);
-    logout();
-    navigate('/');
+  const handleRemoveAvatar = async () => {
+    await handleResetAvatar();
+  };
+
+  const handleConfirmDeleteAccount = async () => {
+    setIsDeleting(true);
+    try {
+      await deleteAccount();
+    } catch (e) {
+      logout();
+    } finally {
+      setIsDeleting(false);
+      setDeleteModalOpen(false);
+      navigate('/register?message=' + encodeURIComponent('Account permanently deleted. Please register a new account to continue.'));
+    }
   };
 
   return (
     <DashboardLayout>
       <div className="max-w-4xl mx-auto space-y-8">
-        
+
         {/* Header */}
         <div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
@@ -92,11 +113,10 @@ export const SettingsPage: React.FC = () => {
         <div className="flex border-b border-slate-200 dark:border-slate-800 space-x-6 text-sm font-semibold text-slate-500 dark:text-slate-400">
           <button
             onClick={() => setActiveTab('profile')}
-            className={`pb-3 flex items-center gap-2 border-b-2 transition-all ${
-              activeTab === 'profile'
+            className={`pb-3 flex items-center gap-2 border-b-2 transition-all ${activeTab === 'profile'
                 ? 'border-brand-500 text-brand-600 dark:text-brand-400'
                 : 'border-transparent hover:text-slate-900 dark:hover:text-white'
-            }`}
+              }`}
           >
             <User className="w-4 h-4" />
             <span>Profile</span>
@@ -104,11 +124,10 @@ export const SettingsPage: React.FC = () => {
 
           <button
             onClick={() => setActiveTab('security')}
-            className={`pb-3 flex items-center gap-2 border-b-2 transition-all ${
-              activeTab === 'security'
+            className={`pb-3 flex items-center gap-2 border-b-2 transition-all ${activeTab === 'security'
                 ? 'border-brand-500 text-brand-600 dark:text-brand-400'
                 : 'border-transparent hover:text-slate-900 dark:hover:text-white'
-            }`}
+              }`}
           >
             <Lock className="w-4 h-4" />
             <span>Password & Security</span>
@@ -116,11 +135,10 @@ export const SettingsPage: React.FC = () => {
 
           <button
             onClick={() => setActiveTab('notifications')}
-            className={`pb-3 flex items-center gap-2 border-b-2 transition-all ${
-              activeTab === 'notifications'
+            className={`pb-3 flex items-center gap-2 border-b-2 transition-all ${activeTab === 'notifications'
                 ? 'border-brand-500 text-brand-600 dark:text-brand-400'
                 : 'border-transparent hover:text-slate-900 dark:hover:text-white'
-            }`}
+              }`}
           >
             <Bell className="w-4 h-4" />
             <span>Notifications</span>
@@ -128,11 +146,10 @@ export const SettingsPage: React.FC = () => {
 
           <button
             onClick={() => setActiveTab('preferences')}
-            className={`pb-3 flex items-center gap-2 border-b-2 transition-all ${
-              activeTab === 'preferences'
+            className={`pb-3 flex items-center gap-2 border-b-2 transition-all ${activeTab === 'preferences'
                 ? 'border-brand-500 text-brand-600 dark:text-brand-400'
                 : 'border-transparent hover:text-slate-900 dark:hover:text-white'
-            }`}
+              }`}
           >
             <Globe className="w-4 h-4" />
             <span>Preferences</span>
@@ -143,7 +160,7 @@ export const SettingsPage: React.FC = () => {
         {activeTab === 'profile' && (
           <div className="space-y-8">
             <form onSubmit={handleSaveProfile} className="glass-card rounded-3xl p-6 sm:p-8 border border-slate-200/80 dark:border-slate-800 space-y-6">
-              
+
               <h3 className="text-base font-bold text-slate-900 dark:text-white">Radiologist Information</h3>
 
               {savedMsg && (
@@ -160,7 +177,7 @@ export const SettingsPage: React.FC = () => {
                 </label>
 
                 <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
-                  
+
                   {/* Avatar Preview Ring */}
                   <div className="relative group">
                     <div className="w-24 h-24 rounded-2xl overflow-hidden border-2 border-brand-500/40 shadow-xl shadow-blue-500/10 bg-slate-200 dark:bg-slate-800 flex items-center justify-center">
@@ -227,11 +244,10 @@ export const SettingsPage: React.FC = () => {
                             key={p.id}
                             type="button"
                             onClick={() => handleSelectPreset(p.url)}
-                            className={`w-9 h-9 rounded-xl overflow-hidden border-2 transition-all ${
-                              avatar === p.url
+                            className={`w-9 h-9 rounded-xl overflow-hidden border-2 transition-all ${avatar === p.url
                                 ? 'border-brand-500 ring-2 ring-brand-500/30 scale-105'
                                 : 'border-transparent opacity-70 hover:opacity-100 hover:scale-105'
-                            }`}
+                              }`}
                             title={p.label}
                           >
                             <img
@@ -280,6 +296,7 @@ export const SettingsPage: React.FC = () => {
                     type="text"
                     value={hospital}
                     onChange={(e) => setHospital(e.target.value)}
+                    placeholder="Hospital / Medical Institute (Optional)"
                     className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-brand-500"
                   />
                 </div>
@@ -328,7 +345,7 @@ export const SettingsPage: React.FC = () => {
           <div className="space-y-8">
             <div className="glass-card rounded-3xl p-6 sm:p-8 border border-slate-200/80 dark:border-slate-800 space-y-6">
               <h3 className="text-base font-bold text-slate-900 dark:text-white">Password & Authentication</h3>
-              
+
               <div className="space-y-4 max-w-md">
                 <div className="space-y-1">
                   <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Current Password</label>
@@ -386,7 +403,7 @@ export const SettingsPage: React.FC = () => {
         {activeTab === 'notifications' && (
           <div className="glass-card rounded-3xl p-6 sm:p-8 border border-slate-200/80 dark:border-slate-800 space-y-6">
             <h3 className="text-base font-bold text-slate-900 dark:text-white">Notification Preferences</h3>
-            
+
             <div className="space-y-4">
               <div className="flex items-center justify-between p-4 rounded-2xl bg-slate-100/60 dark:bg-slate-900/60">
                 <div>
@@ -410,7 +427,7 @@ export const SettingsPage: React.FC = () => {
         {activeTab === 'preferences' && (
           <div className="glass-card rounded-3xl p-6 sm:p-8 border border-slate-200/80 dark:border-slate-800 space-y-6">
             <h3 className="text-base font-bold text-slate-900 dark:text-white">Display & System Preferences</h3>
-            
+
             <div className="space-y-6 max-w-md">
               <div className="flex items-center justify-between p-4 rounded-2xl bg-slate-100/60 dark:bg-slate-900/60">
                 <div>

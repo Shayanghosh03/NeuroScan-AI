@@ -3,14 +3,15 @@ import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '../layouts/DashboardLayout';
 import { UploadArea } from '../components/mri/UploadArea';
 import { usePrediction } from '../context/PredictionContext';
-import { Brain, User, Shield, Sparkles, ArrowRight } from 'lucide-react';
+import { Brain, User, Shield, Sparkles, ArrowRight, AlertCircle } from 'lucide-react';
 
 export const MRIUploadPage: React.FC = () => {
   const [file, setFile] = useState<File | null>(null);
   const [compressedFile, setCompressedFile] = useState<File | null>(null);
   const [patientName, setPatientName] = useState<string>('');
   const [patientAge, setPatientAge] = useState<string>('');
-  const [patientGender, setPatientGender] = useState<string>('Unspecified');
+  const [patientGender, setPatientGender] = useState<string>('');
+  const [formError, setFormError] = useState<string | null>(null);
   const { analyzeMRI, isAnalyzing } = usePrediction();
   const navigate = useNavigate();
 
@@ -19,13 +20,39 @@ export const MRIUploadPage: React.FC = () => {
     setCompressedFile(comp);
   };
 
+  const isFormValid = Boolean(
+    (compressedFile || file) &&
+    patientName.trim().length > 0 &&
+    patientAge.trim().length > 0 &&
+    Number(patientAge) > 0 &&
+    patientGender !== '' &&
+    patientGender !== 'Unspecified'
+  );
+
   const handleStartAnalysis = async () => {
-    if (!compressedFile && !file) return;
+    setFormError(null);
+    if (!patientName.trim()) {
+      setFormError('Patient Name is required before analyzing the scan.');
+      return;
+    }
+    if (!patientAge.trim() || Number(patientAge) <= 0) {
+      setFormError('Valid Patient Age is required before analyzing the scan.');
+      return;
+    }
+    if (!patientGender || patientGender === 'Unspecified') {
+      setFormError('Patient Gender selection is required before analyzing the scan.');
+      return;
+    }
+    if (!compressedFile && !file) {
+      setFormError('Please select or drag & drop an MRI scan image.');
+      return;
+    }
+
     const targetFile = compressedFile || file!;
     
     await analyzeMRI(targetFile, {
-      name: patientName.trim() || 'Anonymous Patient',
-      age: patientAge ? Number(patientAge) : undefined,
+      name: patientName.trim(),
+      age: Number(patientAge),
       gender: patientGender,
     });
 
@@ -55,49 +82,73 @@ export const MRIUploadPage: React.FC = () => {
           
           {/* Patient Details Side Form */}
           <div className="md:col-span-4 glass-card rounded-3xl p-6 border border-slate-200/80 dark:border-slate-800 space-y-4">
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">
-              Patient Metadata (Optional)
-            </h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+                Patient Metadata
+              </h3>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-rose-500/20 text-rose-500">
+                REQUIRED
+              </span>
+            </div>
 
+            {/* Patient Name */}
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                Patient Name
+              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center justify-between">
+                <span>Patient Name</span>
+                <span className="text-rose-500 text-xs font-bold">*</span>
               </label>
               <div className="relative">
                 <User className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
                 <input
                   type="text"
                   value={patientName}
-                  onChange={(e) => setPatientName(e.target.value)}
-                  placeholder="e.g. John Doe (Optional)"
+                  onChange={(e) => {
+                    setPatientName(e.target.value);
+                    if (formError) setFormError(null);
+                  }}
+                  placeholder="e.g. John Doe"
                   className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  required
                 />
               </div>
             </div>
 
+            {/* Age & Gender Grid */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                  Age
+                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center justify-between">
+                  <span>Age</span>
+                  <span className="text-rose-500 text-xs font-bold">*</span>
                 </label>
                 <input
                   type="number"
                   value={patientAge}
-                  onChange={(e) => setPatientAge(e.target.value)}
+                  onChange={(e) => {
+                    setPatientAge(e.target.value);
+                    if (formError) setFormError(null);
+                  }}
                   placeholder="e.g. 45"
+                  min="1"
+                  max="120"
                   className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  required
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                  Gender
+                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center justify-between">
+                  <span>Gender</span>
+                  <span className="text-rose-500 text-xs font-bold">*</span>
                 </label>
                 <select
                   value={patientGender}
-                  onChange={(e) => setPatientGender(e.target.value)}
+                  onChange={(e) => {
+                    setPatientGender(e.target.value);
+                    if (formError) setFormError(null);
+                  }}
                   className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  required
                 >
-                  <option value="Unspecified">Select Gender</option>
+                  <option value="">Select Gender</option>
                   <option value="Male">Male</option>
                   <option value="Female">Female</option>
                   <option value="Other">Other</option>
@@ -127,11 +178,25 @@ export const MRIUploadPage: React.FC = () => {
               }}
             />
 
+            {formError && (
+              <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-xs font-medium flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{formError}</span>
+              </div>
+            )}
+
+            {!isFormValid && file && (
+              <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-xs font-medium flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>Please complete Patient Name, Age, and Gender above to unlock MRI analysis.</span>
+              </div>
+            )}
+
             <button
               onClick={handleStartAnalysis}
-              disabled={!file || isAnalyzing}
+              disabled={!isFormValid || isAnalyzing}
               className={`w-full py-4 rounded-2xl text-base font-bold flex items-center justify-center gap-3 transition-all ${
-                file && !isAnalyzing
+                isFormValid && !isAnalyzing
                   ? 'blue-gradient-btn text-white shadow-xl shadow-blue-500/30'
                   : 'bg-slate-200 dark:bg-slate-800 text-slate-400 cursor-not-allowed'
               }`}
