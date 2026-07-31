@@ -1,4 +1,4 @@
-# 🧠 NeuroScan AI — Advanced Clinical Neuroradiology Workstation & Deep Learning Platform
+# 🧠 NeuroScan AI — AI-Powered Brain Tumor Detection Platform
 
 [![React](https://img.shields.io/badge/React-19.0.0-61DAFB?logo=react&logoColor=white)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7.2-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
@@ -318,5 +318,5 @@ Distributed under the **MIT License**. See `LICENSE` for details.
 ---
 
 <p align="center">
-  <b>NeuroScan AI Workstation v2.4</b> — Built with ❤️ for Diagnostic Neuroradiology.
+  <b>NeuroScan AI Workstation v2.4</b> — Built with ❤️ Shayan Ghosh.
 </p>
