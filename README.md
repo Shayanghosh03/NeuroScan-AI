@@ -2,7 +2,11 @@
 
 ## 🎥 Demo Video
 
-[![Watch the Demo](<img width="1536" height="1024" alt="Image" src="https://github.com/user-attachments/assets/4c63dca0-d906-4dfb-86be-6d5ac329f2d2" />)](https://youtu.be/236UUasPkoc?si=T4aXrk0L4LVdgmHx)
+<p align="center">
+  <a href="https://youtu.be/236UUasPkoc?si=T4aXrk0L4LVdgmHx">
+    <img src="https://github.com/user-attachments/assets/4c63dca0-d906-4dfb-86be-6d5ac329f2d2" alt="NeuroScan AI Demo" width="900">
+  </a>
+</p>
 
 
 [![React](https://img.shields.io/badge/React-19.0.0-61DAFB?logo=react&logoColor=white)](https://react.dev/)
