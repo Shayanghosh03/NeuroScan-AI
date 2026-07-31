@@ -2,7 +2,7 @@
 
 ## 🎥 Demo Video
 
-[![Watch the Demo](https://img.youtube.com/vi/dQw4w9WgXcQ/maxresdefault.jpg)](https://youtu.be/236UUasPkoc?si=T4aXrk0L4LVdgmHx)
+[![Watch the Demo](https://github.com/user-attachments/assets/4c63dca0-d906-4dfb-86be-6d5ac329f2d2")](https://youtu.be/236UUasPkoc?si=T4aXrk0L4LVdgmHx)
 
 
 [![React](https://img.shields.io/badge/React-19.0.0-61DAFB?logo=react&logoColor=white)](https://react.dev/)
