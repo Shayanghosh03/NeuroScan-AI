@@ -1,12 +1,8 @@
 # 🧠 NeuroScan AI — AI-Powered Brain Tumor Detection Platform
 
-<object width="425" height="350">
-  <param name="movie" value="http://www.youtube.com/user/wwwLoveWatercom?v=BTRN1YETpyg" />
-  <param name="wmode" value="transparent" />
-  <embed src="https://youtu.be/236UUasPkoc?si=T4aXrk0L4LVdgmHx"
-         type="application/x-shockwave-flash"
-         wmode="transparent" width="425" height="350" />
-</object>
+## 🎥 Demo Video
+
+[![Watch the Demo](https://img.youtube.com/vi/dQw4w9WgXcQ/maxresdefault.jpg)](https://youtu.be/236UUasPkoc?si=T4aXrk0L4LVdgmHx)
 
 
 [![React](https://img.shields.io/badge/React-19.0.0-61DAFB?logo=react&logoColor=white)](https://react.dev/)
