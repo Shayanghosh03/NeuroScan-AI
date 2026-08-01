@@ -22,7 +22,7 @@ BASE_DIR = Path(__file__).resolve().parent
 MODEL_PATH = os.getenv('MODEL_PATH', str(BASE_DIR / 'model' / 'brain_tumor_model.keras'))
 UPLOAD_FOLDER = BASE_DIR / 'uploads'
 IMAGE_SIZE = int(os.getenv('IMAGE_SIZE', 128))
-CLASS_NAMES = os.getenv('CLASS_NAMES', 'Glioma,Meningioma,No Tumor,Pituitary').split(',')
+CLASS_NAMES = os.getenv('CLASS_NAMES', 'Pituitary,Glioma,No Tumor,Meningioma').split(',')
 
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
