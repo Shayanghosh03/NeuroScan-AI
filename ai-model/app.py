@@ -19,7 +19,7 @@ CORS(app)
 
 # Configuration
 BASE_DIR = Path(__file__).resolve().parent
-MODEL_PATH = os.getenv('MODEL_PATH', str(BASE_DIR / 'model' / 'brain_tumor_model.h5'))
+MODEL_PATH = os.getenv('MODEL_PATH', str(BASE_DIR / 'model' / 'brain_tumor_model.keras'))
 UPLOAD_FOLDER = BASE_DIR / 'uploads'
 IMAGE_SIZE = int(os.getenv('IMAGE_SIZE', 128))
 CLASS_NAMES = os.getenv('CLASS_NAMES', 'Glioma,Meningioma,No Tumor,Pituitary').split(',')
@@ -28,7 +28,10 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 print(f"[*] Loading Brain Tumor Detection Model from: {MODEL_PATH}")
 try:
-    model = tf.keras.models.load_model(MODEL_PATH)
+    model = tf.keras.models.load_model(
+        MODEL_PATH,
+        compile=False
+    )
     print("[+] Model loaded successfully!")
 except Exception as e:
     print(f"[!] Failed to load model from {MODEL_PATH}: {e}")

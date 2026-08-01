@@ -17,7 +17,7 @@ class Config:
     PORT = int(os.getenv('PORT', 8000))
     
     # AI Model Configuration
-    MODEL_PATH = os.getenv('MODEL_PATH', './model/brain_tumor_model.h5')
+    MODEL_PATH = os.getenv('MODEL_PATH', './model/brain_tumor_model.keras')
     IMAGE_SIZE = int(os.getenv('IMAGE_SIZE', 128))
     CLASS_NAMES = os.getenv('CLASS_NAMES', 'Glioma,Meningioma,No Tumor,Pituitary').split(',')
     
