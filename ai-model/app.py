@@ -8,6 +8,9 @@ from flask_cors import CORS
 from PIL import Image
 import numpy as np
 import tensorflow as tf
+from tensorflow.keras.applications import VGG16
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Input, Flatten, Dropout, Dense
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -19,22 +22,59 @@ CORS(app)
 
 # Configuration
 BASE_DIR = Path(__file__).resolve().parent
-MODEL_PATH = os.getenv('MODEL_PATH', str(BASE_DIR / 'model' / 'brain_tumor_model.keras'))
+MODEL_PATH = os.getenv(
+    "MODEL_PATH",
+    str(BASE_DIR / "model" / "brain_tumor.weights.h5")
+)
 UPLOAD_FOLDER = BASE_DIR / 'uploads'
 IMAGE_SIZE = int(os.getenv('IMAGE_SIZE', 128))
-CLASS_NAMES = os.getenv('CLASS_NAMES', 'Pituitary,Glioma,No Tumor,Meningioma').split(',')
+
+CLASS_NAMES = os.getenv(
+    "CLASS_NAMES",
+    "Glioma,Meningioma,No Tumor,Pituitary"
+).split(",")
+
+print("Class Order:", CLASS_NAMES)
 
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-print(f"[*] Loading Brain Tumor Detection Model from: {MODEL_PATH}")
+print("[*] Building VGG16 architecture...")
+
 try:
-    model = tf.keras.models.load_model(
-        MODEL_PATH,
-        compile=False
+    base_model = VGG16(
+        input_shape=(128, 128, 3),
+        include_top=False,
+        weights="imagenet"
     )
-    print("[+] Model loaded successfully!")
+    # Freeze all layers
+    for layer in base_model.layers:
+        layer.trainable = False
+
+    # Unfreeze last 3 layers (same as training notebook)
+    base_model.layers[-2].trainable = True
+    base_model.layers[-3].trainable = True
+    base_model.layers[-4].trainable = True
+
+    model = Sequential([
+        Input(shape=(128, 128, 3)),
+        base_model,
+        Flatten(),
+        Dropout(0.3),
+        Dense(128, activation="relu"),
+        Dropout(0.2),
+        Dense(4, activation="softmax")
+    ])
+
+    if not os.path.exists(MODEL_PATH):
+        raise FileNotFoundError(f"Weights file not found: {MODEL_PATH}")
+
+    model.build((None, 128, 128, 3))
+    model.load_weights(MODEL_PATH)
+
+    print("[+] Model weights loaded successfully!")
+
 except Exception as e:
-    print(f"[!] Failed to load model from {MODEL_PATH}: {e}")
+    print(f"[!] Failed to load weights: {e}")
     model = None
 
 def preprocess_image(image_bytes):
@@ -95,11 +135,13 @@ def predict():
         pil_img.save(saved_path)
 
         # Generate image URL (adjust based on your deployment)
-        image_url = f"http://localhost:8000/uploads/{unique_filename}"
+        base_url = request.host_url.rstrip("/")
+        image_url = f"{base_url}/uploads/{unique_filename}"
 
         if model is not None:
-            predictions = model.predict(img_tensor)[0]
-            
+            predictions = model.predict(img_tensor, verbose=0)
+            predictions = predictions.squeeze()
+
             prob_glioma = round(float(predictions[0]) * 100, 2)
             prob_meningioma = round(float(predictions[1]) * 100, 2)
             prob_notumor = round(float(predictions[2]) * 100, 2)
@@ -108,15 +150,22 @@ def predict():
             probabilities = {
                 "Glioma": prob_glioma,
                 "Meningioma": prob_meningioma,
-                "Pituitary": prob_pituitary,
-                "No Tumor": prob_notumor
+                "No Tumor": prob_notumor,
+                "Pituitary": prob_pituitary
             }
 
             top_idx = int(np.argmax(predictions))
             predicted_class = CLASS_NAMES[top_idx]
             confidence = round(float(predictions[top_idx]) * 100, 2)
+
+            print("=" * 50)
+            print("Raw Predictions:", predictions)
+            print("Predicted Index:", top_idx)
+            print("Predicted Class:", predicted_class)
+            print("Confidence:", confidence)
+            print("=" * 50)
+
         else:
-            # Fallback if model not loaded
             predicted_class = "Glioma"
             confidence = 98.72
             probabilities = {
