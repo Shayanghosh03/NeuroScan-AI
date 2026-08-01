@@ -90,12 +90,22 @@ except Exception as e:
     model = None
 
 def preprocess_image(image_bytes):
-    """Preprocess image for model prediction"""
+    """Preprocess image for model prediction with Min-Max contrast normalization"""
     img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
     img_resized = img.resize((IMAGE_SIZE, IMAGE_SIZE))
-    img_array = np.array(img_resized, dtype=np.float32) / 255.0
-    img_tensor = np.expand_dims(img_array, axis=0)  # Shape (1, 128, 128, 3)
+    img_np = np.array(img_resized, dtype=np.float32)
+    
+    # Min-Max Contrast Normalization: standardizes brain tissue intensity dynamics
+    min_val = np.min(img_np)
+    max_val = np.max(img_np)
+    if max_val > min_val:
+        img_norm = (img_np - min_val) / (max_val - min_val)
+    else:
+        img_norm = img_np / 255.0
+
+    img_tensor = np.expand_dims(img_norm, axis=0)  # Shape (1, 128, 128, 3)
     return img, img_tensor
+
 
 def calculate_risk_level(predicted_class, confidence):
     """Calculate risk level based on prediction"""
@@ -184,12 +194,8 @@ def predict():
             print("Confidence:", confidence)
             print("=" * 50)
 
-            if confidence < 50.0:
-                return jsonify({
-                    "error": f"Image feature pattern mismatch (Confidence: {confidence}%). Uploaded file does not appear to be a valid Brain MRI scan."
-                }), 400
-
         else:
+
 
             # Dynamic fallback when TensorFlow model fails to load
             img_hash = sum(image_bytes[:1000]) if image_bytes else 42

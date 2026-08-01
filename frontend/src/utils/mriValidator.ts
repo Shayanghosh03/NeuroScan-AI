@@ -53,7 +53,7 @@ export async function validateMRIImageClientSide(file: File): Promise<{ isValid:
 
         const avgColorDiff = totalColorDiff / (sampleCount || 1);
 
-        if (avgColorDiff > 14.0) {
+        if (avgColorDiff > 20.0) {
           return resolve({
             isValid: false,
             error: 'Uploaded file appears to be a color photo or non-MRI image. Brain MRI scans must be monochromatic / grayscale.'
@@ -80,10 +80,10 @@ export async function validateMRIImageClientSide(file: File): Promise<{ isValid:
 
         const borderAvg = borderTotal / (borderCount || 1);
 
-        if (borderAvg > 75.0) {
+        if (borderAvg > 115.0) {
           return resolve({
             isValid: false,
-            error: 'Uploaded image lacks the characteristic dark background border of a Brain MRI scan. Please upload a valid axial brain MRI scan.'
+            error: 'Uploaded image background perimeter is too bright. Please upload a standard axial brain MRI scan.'
           });
         }
 
@@ -93,7 +93,7 @@ export async function validateMRIImageClientSide(file: File): Promise<{ isValid:
 
         for (let i = 0; i < data.length; i += 4 * step) {
           const brightness = (data[i] + data[i + 1] + data[i + 2]) / 3;
-          if (brightness < 35.0) {
+          if (brightness < 40.0) {
             darkPixelCount++;
           }
           totalPixels++;
@@ -101,12 +101,13 @@ export async function validateMRIImageClientSide(file: File): Promise<{ isValid:
 
         const darkPixelRatio = darkPixelCount / (totalPixels || 1);
 
-        if (darkPixelRatio < 0.15) {
+        if (darkPixelRatio < 0.03) {
           return resolve({
             isValid: false,
             error: 'Image background ratio does not match Brain MRI scan characteristics. Please upload a genuine brain MRI scan image.'
           });
         }
+
 
         return resolve({ isValid: true });
       };

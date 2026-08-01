@@ -107,7 +107,7 @@ def validate_mri_image(image_bytes):
         color_diff = (np.abs(r - g) + np.abs(g - b) + np.abs(b - r)) / 3.0
         mean_color_diff = float(np.mean(color_diff))
         
-        if mean_color_diff > 14.0:
+        if mean_color_diff > 20.0:
             return False, "Uploaded file appears to be a color photo/non-MRI image. Brain MRI scans must be monochromatic/grayscale."
 
         # 2. Border / Background Darkness Check
@@ -127,30 +127,31 @@ def validate_mri_image(image_bytes):
 
         border_mean_intensity = float(np.mean(border_pixels))
         
-        if border_mean_intensity > 75.0:
-            return False, "Uploaded image lacks the characteristic dark background border of a Brain MRI scan. Please upload a valid axial MRI scan."
+        if border_mean_intensity > 115.0:
+            return False, "Uploaded image background perimeter is too bright. Please upload a standard axial brain MRI scan."
 
         # 3. Central Content & Contrast Structure Check
-        h_start, h_end = int(height * 0.2), int(height * 0.8)
-        w_start, w_end = int(width * 0.2), int(width * 0.8)
+        h_start, h_end = int(height * 0.15), int(height * 0.85)
+        w_start, w_end = int(width * 0.15), int(width * 0.85)
         center_pixels = img_array[h_start:h_end, w_start:w_end, :]
         center_mean = float(np.mean(center_pixels))
         center_max = float(np.max(center_pixels))
 
-        if center_max < 40.0:
+        if center_max < 30.0:
             return False, "Image is too dark or empty. No brain tissue structures detected."
 
-        if center_mean < 15.0:
+        if center_mean < 10.0:
             return False, "Central image area lacks neural tissue structure. Please upload a valid brain MRI scan."
 
         # 4. Background Pixel Ratio Check
         gray_full = np.mean(img_array, axis=2)
-        dark_pixel_ratio = float(np.mean(gray_full < 35.0))
+        dark_pixel_ratio = float(np.mean(gray_full < 40.0))
         
-        if dark_pixel_ratio < 0.15:
-            return False, "Image background does not match Brain MRI scan characteristics. Please upload a genuine brain MRI scan image."
+        if dark_pixel_ratio < 0.03:
+            return False, "Image background ratio does not match Brain MRI scan characteristics. Please upload a genuine brain MRI scan image."
 
         return True, None
+
         
     except Exception as e:
         return False, f"Invalid or corrupted image file: {str(e)}"
