@@ -32,7 +32,12 @@ const predict = async (req, res) => {
       });
       aiResult = response.data;
     } catch (aiError) {
+      if (aiError.response && (aiError.response.status === 400 || aiError.response.data?.error)) {
+        const errorMsg = aiError.response.data?.error || aiError.response.data?.message || 'Uploaded file is not a valid Brain MRI scan.';
+        return res.status(400).json({ message: errorMsg });
+      }
       console.warn('AI Model service unreachable or error. Generating local prediction response:', aiError.message);
+
       
       const classes = ['Glioma', 'Meningioma', 'No Tumor', 'Pituitary'];
       let hash = 0;

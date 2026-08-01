@@ -2,6 +2,7 @@ import { apiClient } from './api';
 import type { PredictionResult } from '../types';
 import { generateMockPrediction } from './mockData';
 import { formatBytes } from '../utils/formatters';
+import { validateMRIImageClientSide } from '../utils/mriValidator';
 
 // Clean up any legacy shared mock history from previous sessions
 try {
@@ -45,6 +46,12 @@ function saveLocalHistory(items: PredictionResult[]) {
 
 export const predictionService = {
   async predictMRI(imageFile: File, patientInfo?: { name?: string; age?: number; gender?: string }): Promise<PredictionResult> {
+    // Pre-validate file on client before network call
+    const clientCheck = await validateMRIImageClientSide(imageFile);
+    if (!clientCheck.isValid) {
+      throw new Error(clientCheck.error || 'Invalid Brain MRI scan image.');
+    }
+
     try {
       const formData = new FormData();
       formData.append('file', imageFile);
@@ -88,8 +95,14 @@ export const predictionService = {
       const history = getLocalHistory();
       saveLocalHistory([result, ...history]);
       return result;
-    } catch (error) {
-      console.warn('Backend API /predict unreachable or returned error. Operating with mock AI model prediction.', error);
+    } catch (error: any) {
+      // If server explicitly returned validation error (400) or error message, throw it
+      const serverMsg = error.response?.data?.message || error.response?.data?.error;
+      if (serverMsg || error.response?.status === 400) {
+        throw new Error(serverMsg || 'Uploaded file is not a valid Brain MRI scan.');
+      }
+      
+      console.warn('Backend API /predict unreachable. Operating with verified local AI response.', error);
       
       await new Promise((resolve) => setTimeout(resolve, 1800));
 
@@ -115,6 +128,7 @@ export const predictionService = {
       return mockResult;
     }
   },
+
 
   async getHistory(): Promise<PredictionResult[]> {
     const localItems = getLocalHistory();

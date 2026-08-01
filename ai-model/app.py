@@ -12,6 +12,7 @@ from tensorflow.keras.applications import VGG16
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Input, Flatten, Dropout, Dense
 from dotenv import load_dotenv
+from utils.image_processing import validate_mri_image
 
 # Load environment variables
 load_dotenv()
@@ -138,6 +139,13 @@ def predict():
 
     try:
         image_bytes = file.read()
+        
+        # Perform MRI structural and visual validation
+        is_valid_mri, validation_error = validate_mri_image(image_bytes)
+        if not is_valid_mri:
+            print(f"[!] Validation failed: {validation_error}")
+            return jsonify({"error": validation_error}), 400
+
         pil_img, img_tensor = preprocess_image(image_bytes)
 
         file_ext = os.path.splitext(file.filename)[1] or ".jpg"
@@ -176,7 +184,13 @@ def predict():
             print("Confidence:", confidence)
             print("=" * 50)
 
+            if confidence < 50.0:
+                return jsonify({
+                    "error": f"Image feature pattern mismatch (Confidence: {confidence}%). Uploaded file does not appear to be a valid Brain MRI scan."
+                }), 400
+
         else:
+
             # Dynamic fallback when TensorFlow model fails to load
             img_hash = sum(image_bytes[:1000]) if image_bytes else 42
             top_idx = img_hash % len(CLASS_NAMES)

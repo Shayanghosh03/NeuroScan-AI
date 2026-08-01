@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { UploadCloud, FileImage, X, AlertCircle, RefreshCw } from 'lucide-react';
 import { compressImage } from '../../utils/imageCompressor';
+import { validateMRIImageClientSide } from '../../utils/mriValidator';
 import { formatBytes } from '../../utils/formatters';
 
 interface UploadAreaProps {
@@ -33,6 +34,14 @@ export const UploadArea: React.FC<UploadAreaProps> = ({ onFileSelected, isAnalyz
       return;
     }
 
+    // Client-side MRI image validation check
+    const mriCheck = await validateMRIImageClientSide(file);
+    if (!mriCheck.isValid) {
+      setErrorMsg(mriCheck.error || 'Invalid MRI scan image.');
+      if (onCancel) onCancel();
+      return;
+    }
+
     setSelectedFile(file);
     setPreviewUrl(URL.createObjectURL(file));
 
@@ -46,6 +55,7 @@ export const UploadArea: React.FC<UploadAreaProps> = ({ onFileSelected, isAnalyz
       onFileSelected(file, file);
     }
   };
+
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -84,7 +94,7 @@ export const UploadArea: React.FC<UploadAreaProps> = ({ onFileSelected, isAnalyz
 
   return (
     <div className="space-y-6">
-      
+
       {/* Drag & Drop File Zone */}
       {!selectedFile ? (
         <div
@@ -93,11 +103,10 @@ export const UploadArea: React.FC<UploadAreaProps> = ({ onFileSelected, isAnalyz
           onDragLeave={handleDrag}
           onDrop={handleDrop}
           onClick={() => inputRef.current?.click()}
-          className={`relative border-2 border-dashed rounded-3xl p-10 text-center cursor-pointer transition-all duration-300 ${
-            dragActive
-              ? 'border-brand-500 bg-brand-500/10 scale-[1.01]'
-              : 'border-slate-300 dark:border-slate-800 bg-slate-100/50 dark:bg-slate-900/40 hover:border-brand-400 hover:bg-slate-100/80 dark:hover:bg-slate-900/80'
-          }`}
+          className={`relative border-2 border-dashed rounded-3xl p-10 text-center cursor-pointer transition-all duration-300 ${dragActive
+            ? 'border-brand-500 bg-brand-500/10 scale-[1.01]'
+            : 'border-slate-300 dark:border-slate-800 bg-slate-100/50 dark:bg-slate-900/40 hover:border-brand-400 hover:bg-slate-100/80 dark:hover:bg-slate-900/80'
+            }`}
         >
           <input
             ref={inputRef}

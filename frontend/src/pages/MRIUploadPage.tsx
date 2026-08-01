@@ -50,14 +50,18 @@ export const MRIUploadPage: React.FC = () => {
 
     const targetFile = compressedFile || file!;
     
-    await analyzeMRI(targetFile, {
-      name: patientName.trim(),
-      age: Number(patientAge),
-      gender: patientGender,
-    });
-
-    navigate('/prediction');
+    try {
+      await analyzeMRI(targetFile, {
+        name: patientName.trim(),
+        age: Number(patientAge),
+        gender: patientGender,
+      });
+      navigate('/prediction');
+    } catch (err: any) {
+      setFormError(err.message || 'AI Model detection error: The uploaded file is not a valid Brain MRI scan image.');
+    }
   };
+
 
   return (
     <DashboardLayout>
