@@ -39,6 +39,19 @@ function getLocalHistory(): PredictionResult[] {
   }
 }
 
+function fileToDataURL(file: File): Promise<string> {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      resolve((e.target?.result as string) || URL.createObjectURL(file));
+    };
+    reader.onerror = () => {
+      resolve(URL.createObjectURL(file));
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 function saveLocalHistory(items: PredictionResult[]) {
   const key = getUserStorageKey();
   localStorage.setItem(key, JSON.stringify(items));
@@ -52,10 +65,15 @@ export const predictionService = {
       throw new Error(clientCheck.error || 'Invalid Brain MRI scan image.');
     }
 
+    // Convert file to data URL so image preview is 100% reliable across UI components
+    const localDataUrl = await fileToDataURL(imageFile);
+
     try {
       const formData = new FormData();
       formData.append('file', imageFile);
       if (patientInfo?.name) formData.append('patientName', patientInfo.name);
+      if (patientInfo?.age) formData.append('patientAge', String(patientInfo.age));
+      if (patientInfo?.gender) formData.append('patientGender', patientInfo.gender);
 
       const response = await apiClient.post('/predict', formData, {
         headers: {
@@ -79,7 +97,7 @@ export const predictionService = {
         prediction: payload.prediction,
         confidence: Number(payload.confidence),
         probabilities: payload.probabilities,
-        imageUrl: payload.imageUrl || URL.createObjectURL(imageFile),
+        imageUrl: localDataUrl || payload.imageUrl,
         imageName: imageFile.name,
         imageSize: formatBytes(imageFile.size),
         date: payload.createdAt || payload.date || new Date().toISOString(),
@@ -104,7 +122,7 @@ export const predictionService = {
       
       console.warn('Backend API /predict unreachable. Operating with verified local AI response.', error);
       
-      await new Promise((resolve) => setTimeout(resolve, 1800));
+      await new Promise((resolve) => setTimeout(resolve, 1200));
 
       const activeUser = (() => {
         try {
@@ -116,7 +134,7 @@ export const predictionService = {
       })();
 
       const mockResult = generateMockPrediction(imageFile.name, formatBytes(imageFile.size));
-      mockResult.imageUrl = URL.createObjectURL(imageFile);
+      mockResult.imageUrl = localDataUrl;
       if (patientInfo?.name) mockResult.patientName = patientInfo.name;
       if (patientInfo?.age) mockResult.patientAge = patientInfo.age;
       if (patientInfo?.gender) mockResult.patientGender = patientInfo.gender;
@@ -128,7 +146,6 @@ export const predictionService = {
       return mockResult;
     }
   },
-
 
   async getHistory(): Promise<PredictionResult[]> {
     const localItems = getLocalHistory();

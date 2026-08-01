@@ -102,55 +102,17 @@ def validate_mri_image(image_bytes):
         img_array = np.array(img, dtype=np.float32)  # Shape (H, W, 3)
         r, g, b = img_array[:, :, 0], img_array[:, :, 1], img_array[:, :, 2]
 
-        # 1. Color Saturation / Channel Variance Check
-        # Medical MRI scans are monochromatic / grayscale. RGB channels must be almost identical.
+        # Color Saturation / Channel Variance Check
+        # Medical MRI scans are monochromatic / grayscale. RGB channels are nearly identical.
         color_diff = (np.abs(r - g) + np.abs(g - b) + np.abs(b - r)) / 3.0
         mean_color_diff = float(np.mean(color_diff))
         
-        if mean_color_diff > 20.0:
+        # High color difference (> 35.0) indicates a vibrant color photo (flowers, cars, pets, etc.)
+        if mean_color_diff > 35.0:
             return False, "Uploaded file appears to be a color photo/non-MRI image. Brain MRI scans must be monochromatic/grayscale."
 
-        # 2. Border / Background Darkness Check
-        # Brain MRI scans feature a central skull/brain surrounded by a dark background perimeter.
-        b_w = max(1, int(min(width, height) * 0.08))
-        top_b = img_array[:b_w, :, :]
-        bottom_b = img_array[-b_w:, :, :]
-        left_b = img_array[:, :b_w, :]
-        right_b = img_array[:, -b_w:, :]
-
-        border_pixels = np.concatenate([
-            top_b.reshape(-1, 3),
-            bottom_b.reshape(-1, 3),
-            left_b.reshape(-1, 3),
-            right_b.reshape(-1, 3)
-        ], axis=0)
-
-        border_mean_intensity = float(np.mean(border_pixels))
-        
-        if border_mean_intensity > 115.0:
-            return False, "Uploaded image background perimeter is too bright. Please upload a standard axial brain MRI scan."
-
-        # 3. Central Content & Contrast Structure Check
-        h_start, h_end = int(height * 0.15), int(height * 0.85)
-        w_start, w_end = int(width * 0.15), int(width * 0.85)
-        center_pixels = img_array[h_start:h_end, w_start:w_end, :]
-        center_mean = float(np.mean(center_pixels))
-        center_max = float(np.max(center_pixels))
-
-        if center_max < 30.0:
-            return False, "Image is too dark or empty. No brain tissue structures detected."
-
-        if center_mean < 10.0:
-            return False, "Central image area lacks neural tissue structure. Please upload a valid brain MRI scan."
-
-        # 4. Background Pixel Ratio Check
-        gray_full = np.mean(img_array, axis=2)
-        dark_pixel_ratio = float(np.mean(gray_full < 40.0))
-        
-        if dark_pixel_ratio < 0.03:
-            return False, "Image background ratio does not match Brain MRI scan characteristics. Please upload a genuine brain MRI scan image."
-
         return True, None
+
 
         
     except Exception as e:

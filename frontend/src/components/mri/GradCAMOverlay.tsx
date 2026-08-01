@@ -11,6 +11,13 @@ export const GradCAMOverlay: React.FC<GradCAMOverlayProps> = ({ imageUrl, predic
   const [showGradCAM, setShowGradCAM] = useState<boolean>(true);
   const [opacity, setOpacity] = useState<number>(0.65);
   const [isZoomed, setIsZoomed] = useState<boolean>(false);
+  const [imgSrc, setImgSrc] = useState<string>(imageUrl);
+
+  React.useEffect(() => {
+    setImgSrc(imageUrl);
+  }, [imageUrl]);
+
+  const fallbackSvg = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400"><rect width="400" height="400" fill="%23090d16"/><circle cx="200" cy="190" r="130" fill="%231e293b" stroke="%23334155" stroke-width="4"/><path d="M140 180 Q200 120 260 180 T140 180" fill="%23334155"/><text x="200" y="350" font-family="sans-serif" font-size="14" font-weight="bold" fill="%2394a3b8" text-anchor="middle">Brain MRI Scan</text></svg>`;
 
   // Gradient heatmap overlay color depending on prediction
   const isHealthy = prediction === 'No Tumor';
@@ -63,12 +70,18 @@ export const GradCAMOverlay: React.FC<GradCAMOverlayProps> = ({ imageUrl, predic
       <div className="relative rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-950 flex items-center justify-center min-h-[340px] group shadow-inner">
         {/* Base MRI Image */}
         <img
-          src={imageUrl}
+          src={imgSrc || fallbackSvg}
           alt="Brain MRI Scan"
+          onError={() => {
+            if (imgSrc !== fallbackSvg) {
+              setImgSrc(fallbackSvg);
+            }
+          }}
           className={`w-full object-contain max-h-[440px] transition-transform duration-300 ${
             isZoomed ? 'scale-125' : 'scale-100'
           }`}
         />
+
 
         {/* GradCAM Heatmap Simulated Layer */}
         {showGradCAM && (

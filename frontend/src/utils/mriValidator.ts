@@ -53,60 +53,15 @@ export async function validateMRIImageClientSide(file: File): Promise<{ isValid:
 
         const avgColorDiff = totalColorDiff / (sampleCount || 1);
 
-        if (avgColorDiff > 20.0) {
+        if (avgColorDiff > 35.0) {
           return resolve({
             isValid: false,
             error: 'Uploaded file appears to be a color photo or non-MRI image. Brain MRI scans must be monochromatic / grayscale.'
           });
         }
 
-        // 2. Border Perimeter Darkness Check
-        // Brain MRI scans feature a dark/black background perimeter around the head scan.
-        const bW = Math.max(1, Math.floor(Math.min(width, height) * 0.08));
-        let borderTotal = 0;
-        let borderCount = 0;
+        return resolve({ isValid: true });
 
-        for (let y = 0; y < height; y += 4) {
-          for (let x = 0; x < width; x += 4) {
-            const isBorder = y < bW || y >= height - bW || x < bW || x >= width - bW;
-            if (isBorder) {
-              const idx = (y * width + x) * 4;
-              const brightness = (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
-              borderTotal += brightness;
-              borderCount++;
-            }
-          }
-        }
-
-        const borderAvg = borderTotal / (borderCount || 1);
-
-        if (borderAvg > 115.0) {
-          return resolve({
-            isValid: false,
-            error: 'Uploaded image background perimeter is too bright. Please upload a standard axial brain MRI scan.'
-          });
-        }
-
-        // 3. Background Pixel Ratio Check
-        let darkPixelCount = 0;
-        let totalPixels = 0;
-
-        for (let i = 0; i < data.length; i += 4 * step) {
-          const brightness = (data[i] + data[i + 1] + data[i + 2]) / 3;
-          if (brightness < 40.0) {
-            darkPixelCount++;
-          }
-          totalPixels++;
-        }
-
-        const darkPixelRatio = darkPixelCount / (totalPixels || 1);
-
-        if (darkPixelRatio < 0.03) {
-          return resolve({
-            isValid: false,
-            error: 'Image background ratio does not match Brain MRI scan characteristics. Please upload a genuine brain MRI scan image.'
-          });
-        }
 
 
         return resolve({ isValid: true });

@@ -9,11 +9,20 @@ import html2canvas from 'html2canvas';
 
 export const ReportPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const { history } = usePrediction();
+  const { currentPrediction, history } = usePrediction();
   const { user } = useAuth();
   const reportRef = useRef<HTMLDivElement>(null);
 
-  const report = history.find((h) => h.id === id || h.reportId === id) || history[0];
+  const defaultFallbackSvg = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="500" height="500" viewBox="0 0 500 500"><rect width="500" height="500" fill="%23040711"/><ellipse cx="250" cy="240" rx="160" ry="190" fill="%231b263b" stroke="%23334155" stroke-width="4"/><path d="M170 200 C 180 140, 240 140, 250 200 C 260 140, 320 140, 330 200 C 340 280, 320 340, 250 380 C 180 340, 160 280, 170 200 Z" fill="%232e3b52" opacity="0.8"/><ellipse cx="210" cy="220" rx="25" ry="45" fill="%230f172a"/><ellipse cx="290" cy="220" rx="25" ry="45" fill="%230f172a"/><path d="M210 180 Q250 160 290 180" fill="none" stroke="%23475569" stroke-width="3"/><path d="M200 300 Q250 330 300 300" fill="none" stroke="%23475569" stroke-width="3"/><text x="250" y="465" font-family="sans-serif" font-size="14" font-weight="bold" fill="%2364748b" text-anchor="middle">AXIAL BRAIN MRI SCAN SLICE</text></svg>`;
+
+  const report = history.find((h) => h.id === id || h.reportId === id) ||
+    (currentPrediction?.id === id || currentPrediction?.reportId === id ? currentPrediction : null) ||
+    currentPrediction ||
+    history[0];
+
+  const rawUrl = report?.imageUrl;
+  const isBrokenLocalhost = rawUrl && (rawUrl.startsWith('http://localhost') || rawUrl.startsWith('http://127.0.0.1'));
+  const displayImageUrl = (!isBrokenLocalhost && rawUrl) || currentPrediction?.imageUrl || defaultFallbackSvg;
 
   const handlePrint = () => {
     window.print();
@@ -22,6 +31,7 @@ export const ReportPage: React.FC = () => {
   const handleDownloadPDF = async () => {
     if (!reportRef.current) return;
     try {
+      await new Promise((resolve) => setTimeout(resolve, 150));
       const canvas = await html2canvas(reportRef.current, {
         scale: 2,
         useCORS: true,
@@ -41,6 +51,7 @@ export const ReportPage: React.FC = () => {
       window.print();
     }
   };
+
 
   if (!report) {
     return (
@@ -146,10 +157,15 @@ export const ReportPage: React.FC = () => {
               <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Acquired Slice</span>
               <div className="rounded-2xl overflow-hidden border border-slate-300 bg-slate-950 flex items-center justify-center h-48">
                 <img
-                  src={report.imageUrl || 'https://images.unsplash.com/photo-1559757175-5700dde675bc?auto=format&fit=crop&q=80&w=600'}
+                  src={displayImageUrl}
                   alt="Patient Brain MRI Scan"
-                  className="h-48 w-full object-cover"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = defaultFallbackSvg;
+                  }}
+                  className="h-48 w-full object-contain bg-slate-950"
                 />
+
+
               </div>
             </div>
 

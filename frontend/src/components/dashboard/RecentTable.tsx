@@ -41,8 +41,12 @@ export const RecentTable: React.FC<RecentTableProps> = ({ items, onDelete }) => 
                   <img
                     src={item.imageUrl || 'https://images.unsplash.com/photo-1559757175-5700dde675bc?auto=format&fit=crop&q=80&w=150'}
                     alt="MRI Thumbnail"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="%23090d16"/><circle cx="50" cy="50" r="30" fill="%231e293b"/></svg>`;
+                    }}
                     className="w-10 h-10 rounded-lg object-cover border border-slate-200 dark:border-slate-700"
                   />
+
                   <span className="font-mono text-xs font-semibold text-slate-900 dark:text-white truncate max-w-[120px]">
                     {item.imageName || item.reportId}
                   </span>
