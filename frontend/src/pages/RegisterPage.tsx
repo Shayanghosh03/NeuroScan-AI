@@ -11,7 +11,7 @@ interface ExtendedRegisterParams extends RegisterParams {
 }
 
 export const RegisterPage: React.FC = () => {
-  const { register: registerUser, isLoading } = useAuth();
+  const { isLoading } = useAuth();
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
   const [captchaCode, setCaptchaCode] = useState<string>('');

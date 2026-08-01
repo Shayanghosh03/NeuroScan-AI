@@ -23,23 +23,16 @@ export const SettingsPage: React.FC = () => {
   const [name, setName] = useState(user?.name || '');
   const [hospital, setHospital] = useState(user?.hospital || '');
   const [avatar, setAvatar] = useState(user?.avatar || PRESET_AVATARS[0].url);
-  const [department, setDepartment] = useState(user?.department || 'Diagnostic Imaging');
-  const [role, setRole] = useState(user?.role || 'Neuroradiologist');
+  const [department] = useState(user?.department || 'Diagnostic Imaging');
+  const [role] = useState(user?.role || 'Neuroradiologist');
   const [language, setLanguage] = useState('English');
   const [savedMsg, setSavedMsg] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const [, setIsDeleting] = useState(false);
 
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     await updateProfile({ name, hospital, avatar, department, role });
-    setSavedMsg(true);
-    setTimeout(() => setSavedMsg(false), 3000);
-  };
-
-  const handleAvatarSelect = async (url: string) => {
-    setAvatar(url);
-    await updateProfile({ avatar: url });
     setSavedMsg(true);
     setTimeout(() => setSavedMsg(false), 3000);
   };

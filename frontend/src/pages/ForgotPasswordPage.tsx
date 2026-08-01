@@ -12,7 +12,6 @@ export const ForgotPasswordPage: React.FC = () => {
 
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
-  const [generatedOtp, setGeneratedOtp] = useState<string | null>(null);
 
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');

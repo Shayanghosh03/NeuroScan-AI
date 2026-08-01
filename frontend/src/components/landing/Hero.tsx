@@ -2,7 +2,6 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Brain, ArrowRight, ShieldCheck, Zap, Sparkles, CheckCircle2 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import brainMriImage from '../../assets/brain-mri.png';
 
 export const Hero: React.FC = () => {
   return (

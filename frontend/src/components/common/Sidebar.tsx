@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, UploadCloud, History, FileSpreadsheet, Settings, LogOut, Brain, ChevronRight } from 'lucide-react';
+import { LayoutDashboard, UploadCloud, History, Settings, LogOut, Brain, ChevronRight } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 interface SidebarProps {
