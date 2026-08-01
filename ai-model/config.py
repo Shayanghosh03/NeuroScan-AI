@@ -19,7 +19,7 @@ class Config:
     # AI Model Configuration
     MODEL_PATH = os.getenv('MODEL_PATH', './model/brain_tumor.weights.h5')
     IMAGE_SIZE = int(os.getenv('IMAGE_SIZE', 128))
-    CLASS_NAMES = os.getenv('CLASS_NAMES', 'Pituitary,Glioma,No Tumor,Meningioma').split(',')
+    CLASS_NAMES = os.getenv('CLASS_NAMES', 'Glioma,Meningioma,No Tumor,Pituitary').split(',')
     
     # File Upload Configuration
     BASE_DIR = Path(__file__).resolve().parent
