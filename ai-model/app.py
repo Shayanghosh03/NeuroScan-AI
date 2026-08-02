@@ -8,6 +8,9 @@ from flask_cors import CORS
 from PIL import Image
 import numpy as np
 import tensorflow as tf
+from tensorflow.keras import Model
+from tensorflow.keras.applications import VGG16
+from tensorflow.keras.layers import Dense, GlobalAveragePooling2D
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -19,20 +22,59 @@ CORS(app)
 
 # Configuration
 BASE_DIR = Path(__file__).resolve().parent
-MODEL_PATH = os.getenv('MODEL_PATH', str(BASE_DIR / 'model' / 'brain_tumor.weights.h5'))
+MODEL_PATH_RAW = os.getenv('MODEL_PATH', str(BASE_DIR / 'model' / 'brain_tumor.weights.h5'))
 UPLOAD_FOLDER = BASE_DIR / 'uploads'
 IMAGE_SIZE = int(os.getenv('IMAGE_SIZE', 128))
 CLASS_NAMES = os.getenv('CLASS_NAMES', 'Glioma,Meningioma,No Tumor,Pituitary').split(',')
 
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
+def resolve_model_path(model_path_raw):
+    """Resolve model path; treat relative paths as relative to this app directory."""
+    model_path = Path(model_path_raw)
+    if not model_path.is_absolute():
+        model_path = BASE_DIR / model_path
+    return model_path.resolve()
+
+
+def build_vgg16_classifier(input_size, num_classes):
+    """Build VGG16 architecture for loading weights-only checkpoints."""
+    base_model = VGG16(weights='imagenet', include_top=False, input_shape=(input_size, input_size, 3))
+    x = base_model.output
+    x = GlobalAveragePooling2D()(x)
+    x = Dense(256, activation='relu')(x)
+    predictions = Dense(num_classes, activation='softmax')(x)
+    model_instance = Model(inputs=base_model.input, outputs=predictions)
+    return model_instance
+
+
+def load_brain_tumor_model(model_path):
+    """Load a full model or (if needed) load weights into known VGG16 architecture."""
+    try:
+        return tf.keras.models.load_model(model_path), "full_model"
+    except Exception as full_model_error:
+        if str(model_path).endswith(".weights.h5"):
+            try:
+                weights_model = build_vgg16_classifier(IMAGE_SIZE, len(CLASS_NAMES))
+                weights_model.load_weights(model_path)
+                return weights_model, "weights_only"
+            except Exception as weights_error:
+                raise RuntimeError(
+                    f"Full model load failed ({full_model_error}); weights load failed ({weights_error})"
+                ) from weights_error
+        raise RuntimeError(f"Full model load failed ({full_model_error})") from full_model_error
+
+
+MODEL_PATH = resolve_model_path(MODEL_PATH_RAW)
+model_load_error = None
 print(f"[*] Loading Brain Tumor Detection Model from: {MODEL_PATH}")
 try:
-    model = tf.keras.models.load_model(MODEL_PATH)
-    print("[+] Model loaded successfully!")
+    model, load_mode = load_brain_tumor_model(str(MODEL_PATH))
+    print(f"[+] Model loaded successfully! mode={load_mode}")
 except Exception as e:
     print(f"[!] Failed to load model from {MODEL_PATH}: {e}")
     model = None
+    model_load_error = str(e)
 
 def preprocess_image(image_bytes):
     """Preprocess image for model prediction"""
@@ -64,6 +106,8 @@ def health():
     return jsonify({
         "status": "online",
         "model_loaded": model is not None,
+        "model_path": str(MODEL_PATH),
+        "model_load_error": model_load_error,
         "classes": CLASS_NAMES,
         "time": datetime.datetime.now().isoformat()
     })
@@ -94,34 +138,27 @@ def predict():
         # Generate image URL (adjust based on your deployment)
         image_url = f"http://localhost:8000/uploads/{unique_filename}"
 
-        if model is not None:
-            predictions = model.predict(img_tensor)[0]
-            
-            prob_glioma = round(float(predictions[0]) * 100, 2)
-            prob_meningioma = round(float(predictions[1]) * 100, 2)
-            prob_notumor = round(float(predictions[2]) * 100, 2)
-            prob_pituitary = round(float(predictions[3]) * 100, 2)
+        if model is None:
+            return jsonify({
+                "error": "Model is unavailable for inference.",
+                "details": model_load_error
+            }), 503
 
-            probabilities = {
-                "Glioma": prob_glioma,
-                "Meningioma": prob_meningioma,
-                "Pituitary": prob_pituitary,
-                "No Tumor": prob_notumor
-            }
+        predictions = model.predict(img_tensor)[0]
+        if len(predictions) != len(CLASS_NAMES):
+            return jsonify({
+                "error": "Model output shape does not match configured classes.",
+                "details": f"output={len(predictions)} classes={len(CLASS_NAMES)}"
+            }), 500
 
-            top_idx = int(np.argmax(predictions))
-            predicted_class = CLASS_NAMES[top_idx]
-            confidence = round(float(predictions[top_idx]) * 100, 2)
-        else:
-            # Fallback if model not loaded
-            predicted_class = "Glioma"
-            confidence = 98.72
-            probabilities = {
-                "Glioma": 98.72,
-                "Meningioma": 0.91,
-                "Pituitary": 0.22,
-                "No Tumor": 0.15
-            }
+        probabilities = {
+            class_name: round(float(predictions[idx]) * 100, 2)
+            for idx, class_name in enumerate(CLASS_NAMES)
+        }
+
+        top_idx = int(np.argmax(predictions))
+        predicted_class = CLASS_NAMES[top_idx]
+        confidence = round(float(predictions[top_idx]) * 100, 2)
 
         risk_level = calculate_risk_level(predicted_class, confidence)
         report_id = f"REP-{datetime.datetime.now().year}-{np.random.randint(1000, 9999)}"

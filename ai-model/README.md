@@ -57,8 +57,11 @@ MAX_CONTENT_LENGTH=16777216
 
 4. **Ensure model file exists**:
 ```bash
-# Place your trained model at:
+# Full Keras model (recommended):
 model/brain_tumor_model.h5
+
+# Or weights-only checkpoint (supported in app.py):
+model/brain_tumor.weights.h5
 ```
 
 ## Running the Server
@@ -218,6 +221,7 @@ All errors return JSON format:
 Common errors:
 - `No image file provided in form-data key 'file'`
 - `Empty file provided`
+- `Model is unavailable for inference.` (check `/health` -> `model_load_error`)
 - `Prediction failed: <specific error>`
 
 ## Project Structure
