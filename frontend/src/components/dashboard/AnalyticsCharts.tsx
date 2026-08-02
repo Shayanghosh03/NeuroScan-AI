@@ -30,27 +30,34 @@ export const AnalyticsCharts: React.FC = () => {
     { name: 'No Scan Data', value: 1, color: '#334155' }
   ];
 
-  // Dynamic Monthly Scan Activity Trend Data (Starts at 0 for all months)
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'];
+  // Dynamic Real-time Monthly Scan Activity Trend Data
+  const ALL_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const currentMonthIdx = new Date().getMonth();
+  const months = ALL_MONTHS.slice(0, Math.max(currentMonthIdx + 1, 6));
+
   const monthCounts: Record<string, { scans: number; tumors: number }> = {};
-  
   months.forEach((m) => {
     monthCounts[m] = { scans: 0, tumors: 0 };
   });
 
   history.forEach((item) => {
+    let dateObj: Date | null = null;
     if (item.date) {
-      try {
-        const d = new Date(item.date);
-        const mName = d.toLocaleString('en-US', { month: 'short' });
-        if (monthCounts[mName]) {
-          monthCounts[mName].scans += 1;
-          if (item.prediction !== 'No Tumor') {
-            monthCounts[mName].tumors += 1;
-          }
-        }
-      } catch {
-        // date fallback
+      const parsed = new Date(item.date);
+      if (!isNaN(parsed.getTime())) {
+        dateObj = parsed;
+      }
+    }
+
+    if (!dateObj) {
+      dateObj = new Date();
+    }
+
+    const mName = dateObj.toLocaleString('en-US', { month: 'short' });
+    if (monthCounts[mName] !== undefined) {
+      monthCounts[mName].scans += 1;
+      if (item.prediction !== 'No Tumor') {
+        monthCounts[mName].tumors += 1;
       }
     }
   });

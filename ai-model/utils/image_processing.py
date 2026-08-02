@@ -71,6 +71,7 @@ def apply_clahe(image):
 def validate_mri_image(image_bytes):
     """
     Validate if the uploaded file is a valid Brain MRI scan image.
+    Enforces monochromatic check, dark perimeter background check, and tissue variance structure.
     
     Args:
         image_bytes: Raw image bytes
@@ -102,18 +103,47 @@ def validate_mri_image(image_bytes):
         img_array = np.array(img, dtype=np.float32)  # Shape (H, W, 3)
         r, g, b = img_array[:, :, 0], img_array[:, :, 1], img_array[:, :, 2]
 
-        # Color Saturation / Channel Variance Check
+        # 1. Color Saturation / Channel Variance Check
         # Medical MRI scans are monochromatic / grayscale. RGB channels are nearly identical.
         color_diff = (np.abs(r - g) + np.abs(g - b) + np.abs(b - r)) / 3.0
         mean_color_diff = float(np.mean(color_diff))
         
-        # High color difference (> 35.0) indicates a vibrant color photo (flowers, cars, pets, etc.)
-        if mean_color_diff > 35.0:
-            return False, "Uploaded file appears to be a color photo/non-MRI image. Brain MRI scans must be monochromatic/grayscale."
+        # Color difference (> 14.0) indicates a color photo (flowers, cars, pets, UI screenshot)
+        if mean_color_diff > 14.0:
+            return False, "Uploaded file appears to be a color photo or non-MRI image. Brain MRI scans must be monochromatic/grayscale."
+
+        # Grayscale channel representation
+        gray = np.mean(img_array, axis=2)  # Shape (H, W), values 0..255
+
+        # 2. Corner / Perimeter Background Check
+        # Brain MRIs are centered head scans with dark ambient background around corners.
+        h10 = max(1, int(height * 0.10))
+        w10 = max(1, int(width * 0.10))
+        
+        top_left = gray[0:h10, 0:w10]
+        top_right = gray[0:h10, -w10:]
+        bottom_left = gray[-h10:, 0:w10]
+        bottom_right = gray[-h10:, -w10:]
+        
+        corner_mean = float(np.mean([np.mean(top_left), np.mean(top_right), np.mean(bottom_left), np.mean(bottom_right)]))
+        
+        if corner_mean > 110.0:
+            return False, "Uploaded image does not appear to be a Brain MRI scan (bright background detected; MRI scans have dark perimeter backgrounds)."
+
+        # 3. Overall Intensity Contrast & Tissue Variance Check
+        std_intensity = float(np.std(gray))
+        if std_intensity < 10.0:
+            return False, "Image lacks the tissue contrast variation required for a Brain MRI scan."
+
+        # 4. Foreground Tissue Ratio Check
+        foreground_pixels = np.sum(gray > 30)
+        total_pixels = width * height
+        foreground_ratio = foreground_pixels / float(total_pixels)
+        
+        if foreground_ratio < 0.05 or foreground_ratio > 0.95:
+            return False, "Image structural proportions do not match a Brain MRI scan slice."
 
         return True, None
-
-
         
     except Exception as e:
         return False, f"Invalid or corrupted image file: {str(e)}"

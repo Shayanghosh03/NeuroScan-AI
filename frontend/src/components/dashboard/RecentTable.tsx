@@ -78,9 +78,15 @@ export const RecentTable: React.FC<RecentTableProps> = ({ items, onDelete }) => 
                   >
                     <Eye className="w-4 h-4" />
                   </Link>
-                  {onDelete && item.id && (
+                  {onDelete && (item.id || item.reportId) && (
                     <button
-                      onClick={() => onDelete(item.id!)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const recordId = item.id || item.reportId;
+                        if (window.confirm(`Are you sure you want to delete report ${item.reportId || recordId}?`)) {
+                          onDelete(recordId);
+                        }
+                      }}
                       className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors"
                       title="Delete Record"
                     >

@@ -3,10 +3,10 @@ import { Link } from 'react-router-dom';
 import { DashboardLayout } from '../layouts/DashboardLayout';
 import { usePrediction } from '../context/PredictionContext';
 import { RecentTable } from '../components/dashboard/RecentTable';
-import { Search, Filter, ArrowUpDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, Filter, ArrowUpDown, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
 
 export const PredictionHistoryPage: React.FC = () => {
-  const { history, deletePrediction } = usePrediction();
+  const { history, deletePrediction, clearAllHistory } = usePrediction();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterClass, setFilterClass] = useState('All');
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest' | 'confidence'>('newest');
@@ -41,6 +41,12 @@ export const PredictionHistoryPage: React.FC = () => {
   const totalPages = Math.ceil(filtered.length / itemsPerPage) || 1;
   const paginatedItems = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
+  const handleClearAll = () => {
+    if (window.confirm('Are you sure you want to delete all prediction history records? This cannot be undone.')) {
+      clearAllHistory();
+    }
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -55,12 +61,25 @@ export const PredictionHistoryPage: React.FC = () => {
               Audit trail of all previous neural MRI scans and patient diagnostics
             </p>
           </div>
-          <Link
-            to="/upload"
-            className="blue-gradient-btn px-5 py-2.5 rounded-xl text-xs font-bold self-start sm:self-auto shadow-lg shadow-blue-500/25"
-          >
-            + Analyze New Scan
-          </Link>
+
+          <div className="flex flex-wrap items-center gap-3 self-start sm:self-auto">
+            {history.length > 0 && (
+              <button
+                onClick={handleClearAll}
+                className="px-4 py-2.5 rounded-xl border border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 text-xs font-semibold flex items-center gap-2 transition-colors"
+                title="Clear All History"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>Clear History</span>
+              </button>
+            )}
+            <Link
+              to="/upload"
+              className="blue-gradient-btn px-5 py-2.5 rounded-xl text-xs font-bold shadow-lg shadow-blue-500/25"
+            >
+              + Analyze New Scan
+            </Link>
+          </div>
         </div>
 
         {/* Toolbar: Search, Filter, Sort */}

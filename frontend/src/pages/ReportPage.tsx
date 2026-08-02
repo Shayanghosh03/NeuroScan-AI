@@ -13,16 +13,10 @@ export const ReportPage: React.FC = () => {
   const { user } = useAuth();
   const reportRef = useRef<HTMLDivElement>(null);
 
-  const defaultFallbackSvg = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="500" height="500" viewBox="0 0 500 500"><rect width="500" height="500" fill="%23040711"/><ellipse cx="250" cy="240" rx="160" ry="190" fill="%231b263b" stroke="%23334155" stroke-width="4"/><path d="M170 200 C 180 140, 240 140, 250 200 C 260 140, 320 140, 330 200 C 340 280, 320 340, 250 380 C 180 340, 160 280, 170 200 Z" fill="%232e3b52" opacity="0.8"/><ellipse cx="210" cy="220" rx="25" ry="45" fill="%230f172a"/><ellipse cx="290" cy="220" rx="25" ry="45" fill="%230f172a"/><path d="M210 180 Q250 160 290 180" fill="none" stroke="%23475569" stroke-width="3"/><path d="M200 300 Q250 330 300 300" fill="none" stroke="%23475569" stroke-width="3"/><text x="250" y="465" font-family="sans-serif" font-size="14" font-weight="bold" fill="%2364748b" text-anchor="middle">AXIAL BRAIN MRI SCAN SLICE</text></svg>`;
-
   const report = history.find((h) => h.id === id || h.reportId === id) ||
     (currentPrediction?.id === id || currentPrediction?.reportId === id ? currentPrediction : null) ||
     currentPrediction ||
     history[0];
-
-  const rawUrl = report?.imageUrl;
-  const isBrokenLocalhost = rawUrl && (rawUrl.startsWith('http://localhost') || rawUrl.startsWith('http://127.0.0.1'));
-  const displayImageUrl = (!isBrokenLocalhost && rawUrl) || currentPrediction?.imageUrl || defaultFallbackSvg;
 
   const handlePrint = () => {
     window.print();
@@ -111,12 +105,20 @@ export const ReportPage: React.FC = () => {
           {/* Medical Letterhead */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b-2 border-slate-900 pb-6 gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-blue-600 flex items-center justify-center text-white shadow-md">
-                <Brain className="w-7 h-7" />
+              <div
+                className="w-12 h-12 rounded-2xl bg-blue-600 flex items-center justify-center text-white shadow-md shrink-0"
+                style={{
+                  backgroundColor: '#2563eb',
+                  color: '#ffffff',
+                  WebkitPrintColorAdjust: 'exact',
+                  printColorAdjust: 'exact',
+                }}
+              >
+                <Brain className="w-7 h-7 text-white" style={{ color: '#ffffff', stroke: '#ffffff' }} />
               </div>
               <div>
                 <h2 className="text-2xl font-black tracking-tight text-slate-900">
-                  NeuroScan <span className="text-blue-600">AI</span>
+                  NeuroScan <span className="text-blue-600" style={{ color: '#2563eb', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>AI</span>
                 </h2>
                 <p className="text-xs text-slate-500 font-bold uppercase tracking-widest">
                   Diagnostic Neuroradiology Report
@@ -150,69 +152,46 @@ export const ReportPage: React.FC = () => {
           </div>
 
           {/* Diagnosis & Findings */}
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
+          <div className="space-y-4">
+            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">AI Model Findings</span>
 
-            {/* MRI Thumbnail */}
-            <div className="md:col-span-4 space-y-2">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Acquired Slice</span>
-              <div className="rounded-2xl overflow-hidden border border-slate-300 bg-slate-950 flex items-center justify-center h-48">
-                <img
-                  src={displayImageUrl}
-                  alt="Patient Brain MRI Scan"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = defaultFallbackSvg;
-                  }}
-                  className="h-48 w-full object-contain bg-slate-950"
-                />
-
-
+            <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-bold text-slate-700">Classification</span>
+                <span className="text-lg font-black text-rose-600">{report.prediction}</span>
+              </div>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-slate-500">Neural Confidence Score</span>
+                <span className="font-bold text-slate-900">{report.confidence}%</span>
+              </div>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-slate-500">Assessed Risk Category</span>
+                <span className="font-bold text-slate-900">{report.riskLevel || 'High'}</span>
               </div>
             </div>
 
-            {/* Neural Findings Summary */}
-            <div className="md:col-span-8 space-y-4">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">AI Model Findings</span>
-
-              <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-bold text-slate-700">Classification</span>
-                  <span className="text-lg font-black text-rose-600">{report.prediction}</span>
+            {/* Probabilities Mini Table */}
+            <div className="space-y-1">
+              <span className="text-[11px] font-bold text-slate-500 uppercase">Class Probabilities</span>
+              <div className="grid grid-cols-4 gap-2 text-center text-xs">
+                <div className="p-2 rounded-xl bg-slate-100">
+                  <span className="block text-[10px] text-slate-500">Glioma</span>
+                  <span className="font-bold text-slate-900">{report.probabilities?.Glioma || 0}%</span>
                 </div>
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-slate-500">Neural Confidence Score</span>
-                  <span className="font-bold text-slate-900">{report.confidence}%</span>
+                <div className="p-2 rounded-xl bg-slate-100">
+                  <span className="block text-[10px] text-slate-500">Meningioma</span>
+                  <span className="font-bold text-slate-900">{report.probabilities?.Meningioma || 0}%</span>
                 </div>
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-slate-500">Assessed Risk Category</span>
-                  <span className="font-bold text-slate-900">{report.riskLevel || 'High'}</span>
+                <div className="p-2 rounded-xl bg-slate-100">
+                  <span className="block text-[10px] text-slate-500">Pituitary</span>
+                  <span className="font-bold text-slate-900">{report.probabilities?.Pituitary || 0}%</span>
                 </div>
-              </div>
-
-              {/* Probabilities Mini Table */}
-              <div className="space-y-1">
-                <span className="text-[11px] font-bold text-slate-500 uppercase">Class Probabilities</span>
-                <div className="grid grid-cols-4 gap-2 text-center text-xs">
-                  <div className="p-2 rounded-xl bg-slate-100">
-                    <span className="block text-[10px] text-slate-500">Glioma</span>
-                    <span className="font-bold text-slate-900">{report.probabilities?.Glioma || 0}%</span>
-                  </div>
-                  <div className="p-2 rounded-xl bg-slate-100">
-                    <span className="block text-[10px] text-slate-500">Meningioma</span>
-                    <span className="font-bold text-slate-900">{report.probabilities?.Meningioma || 0}%</span>
-                  </div>
-                  <div className="p-2 rounded-xl bg-slate-100">
-                    <span className="block text-[10px] text-slate-500">Pituitary</span>
-                    <span className="font-bold text-slate-900">{report.probabilities?.Pituitary || 0}%</span>
-                  </div>
-                  <div className="p-2 rounded-xl bg-slate-100">
-                    <span className="block text-[10px] text-slate-500">No Tumor</span>
-                    <span className="font-bold text-slate-900">{report.probabilities?.['No Tumor'] || 0}%</span>
-                  </div>
+                <div className="p-2 rounded-xl bg-slate-100">
+                  <span className="block text-[10px] text-slate-500">No Tumor</span>
+                  <span className="font-bold text-slate-900">{report.probabilities?.['No Tumor'] || 0}%</span>
                 </div>
               </div>
-
             </div>
-
           </div>
 
           {/* Clinical Impressions & Recommendations */}

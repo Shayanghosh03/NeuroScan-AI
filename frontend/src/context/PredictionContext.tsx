@@ -10,6 +10,7 @@ interface PredictionContextType {
   isAnalyzing: boolean;
   analyzeMRI: (file: File, patientInfo?: { name?: string; age?: number; gender?: string }) => Promise<PredictionResult>;
   deletePrediction: (id: string) => Promise<void>;
+  clearAllHistory: () => Promise<void>;
   refreshHistory: () => Promise<void>;
 }
 
@@ -44,9 +45,15 @@ export const PredictionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   const deletePrediction = async (id: string) => {
     await predictionService.deleteHistoryItem(id);
-    if (currentPrediction?.id === id) {
+    if (currentPrediction?.id === id || currentPrediction?.reportId === id) {
       setCurrentPrediction(null);
     }
+    await refreshHistory();
+  };
+
+  const clearAllHistory = async () => {
+    await predictionService.clearHistory();
+    setCurrentPrediction(null);
     await refreshHistory();
   };
 
@@ -59,6 +66,7 @@ export const PredictionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         isAnalyzing,
         analyzeMRI,
         deletePrediction,
+        clearAllHistory,
         refreshHistory,
       }}
     >

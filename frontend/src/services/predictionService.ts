@@ -194,5 +194,15 @@ export const predictionService = {
     const updated = history.filter((item) => item.id !== id && item.reportId !== id);
     saveLocalHistory(updated);
     return true;
+  },
+
+  async clearHistory(): Promise<boolean> {
+    try {
+      await apiClient.delete('/history');
+    } catch (error) {
+      console.warn('Mock clearing all history:', error);
+    }
+    saveLocalHistory([]);
+    return true;
   }
 };
