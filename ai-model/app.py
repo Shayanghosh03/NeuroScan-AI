@@ -10,7 +10,8 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.keras import Model
 from tensorflow.keras.applications import VGG16
-from tensorflow.keras.layers import Dense, GlobalAveragePooling2D
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, Flatten, Dropout, GlobalAveragePooling2D
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -38,13 +39,17 @@ def resolve_model_path(model_path_raw):
 
 
 def build_vgg16_classifier(input_size, num_classes):
-    """Build VGG16 architecture for loading weights-only checkpoints."""
-    base_model = VGG16(weights='imagenet', include_top=False, input_shape=(input_size, input_size, 3))
-    x = base_model.output
-    x = GlobalAveragePooling2D()(x)
-    x = Dense(256, activation='relu')(x)
-    predictions = Dense(num_classes, activation='softmax')(x)
-    model_instance = Model(inputs=base_model.input, outputs=predictions)
+    """Build VGG16 architecture matching weights-only checkpoint structure."""
+    base_model = VGG16(weights=None, include_top=False, input_shape=(input_size, input_size, 3))
+    model_instance = Sequential([
+        base_model,
+        Flatten(),
+        Dense(128, activation='relu'),
+        Dropout(0.5),
+        Dense(num_classes, activation='softmax')
+    ])
+    # Ensure all layer shapes/variables are built before loading weights
+    model_instance(tf.zeros((1, input_size, input_size, 3)))
     return model_instance
 
 
@@ -53,7 +58,7 @@ def load_brain_tumor_model(model_path):
     try:
         return tf.keras.models.load_model(model_path), "full_model"
     except Exception as full_model_error:
-        if str(model_path).endswith(".weights.h5"):
+        if str(model_path).endswith(".weights.h5") or str(model_path).endswith(".h5"):
             try:
                 weights_model = build_vgg16_classifier(IMAGE_SIZE, len(CLASS_NAMES))
                 weights_model.load_weights(model_path)
