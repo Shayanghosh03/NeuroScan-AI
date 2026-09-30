@@ -1,6 +1,6 @@
 # 🧠 NeuroScan AI — AI-Powered Brain Tumor Detection Platform
 
-
+<img width="1897" height="903" alt="Image" src="https://github.com/user-attachments/assets/921fd63c-0979-4eda-acd5-aef3ef7f7aac" />
 
 [![React](https://img.shields.io/badge/React-19.0.0-61DAFB?logo=react&logoColor=white)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7.2-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
